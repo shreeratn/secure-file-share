@@ -1,10 +1,12 @@
-import Auth from "./components/abnormal/Auth.tsx";
+import AuthLanding from "./components/abnormal/AuthLanding.tsx";
 import "./App.css";
+import Dashboard from "./components/abnormal/Dashboard.tsx";
 
 function App() {
 	return (
 		<>
-			<Auth/>
+			{/*<AuthLanding/>*/}
+			<Dashboard/>
 		</>
 	);
 }

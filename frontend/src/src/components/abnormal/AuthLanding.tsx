@@ -1,7 +1,7 @@
 import {LineShadowText} from "../magicui/line-shadow-text.tsx";
 import {Login} from "./Login.tsx";
 
-export default function Auth() {
+export default function AuthLanding() {
     return (
         <div className="flex h-screen p-1">
             <div className="w-3/5 flex justify-center items-center bg-black text-white rounded-lg">
