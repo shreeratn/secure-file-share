@@ -288,7 +288,7 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
     })
 
     return (
-        <div className="rounded-md border mt-4 flex flex-col h-[calc(100vh-520px)]">
+        <div className="rounded-md border mt-4 flex flex-col h-[calc(100vh-540px)]">
             <div className="flex items-center justify-between p-4 border-b">
                 <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'owned' | 'shared')}>
                     <TabsList>

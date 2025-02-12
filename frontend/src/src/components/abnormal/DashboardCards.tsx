@@ -255,7 +255,7 @@ export function DashboardCards({data}: { data: DashboardData }) {
             {/*Upload Card*/}
             <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : "min-w-[150px]"}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle>Upload Files</CardTitle>
+                    <CardTitle className="text-sm font-medium">Upload Files</CardTitle>
                     {data.userRole === 'Guest' && <LockIcon className="h-4 w-4 text-red-500"/>}
                 </CardHeader>
                 {data.userRole === 'Guest' ? (
