@@ -183,7 +183,7 @@ const dummyData: DashboardData = {
     totalFiles: 298,
     usedStorageGB: 0.32,
     activeLinks: 23,
-    userRole: "Admin",
+    userRole: "Guest",
     encryptionPercent: 98,
     sharedLinks: {
         total: 142,
@@ -208,13 +208,13 @@ const dummyData: DashboardData = {
 
 export default function DashboardPage() {
     return (
-        <div className="hidden flex-col md:flex">
+        <div className="flex-col md:flex">
             <div className="flex-1 space-y-4 p-8 pt-6">
                 {/* New top card */}
                 <Card className="w-full mb-4">
                     <CardContent className="flex justify-between items-center p-3">
                         <h1 className="text-3xl font-bold tracking-tighter">
-                            Assignment by <AuroraText>Shree Ratn</AuroraText>
+                            Secure File Share by <AuroraText>Shree Ratn</AuroraText>
                         </h1>
                         <div className="flex gap-4">
                             <Button variant="outline">Complete MFA</Button>

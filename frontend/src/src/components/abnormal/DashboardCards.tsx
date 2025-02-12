@@ -48,7 +48,7 @@ export interface DashboardData {
 
 const STORAGE_LIMIT_GB = 1
 
-const LOCKED_CARD_CLASS = "border-2 border-yellow-200 shadow-sm shadow-yellow-600/100 relative"
+const LOCKED_CARD_CLASS = "min-w-[150px] border-2 border-yellow-200 shadow-sm shadow-yellow-600/100 relative"
 
 const LockedContent = () => (
     <>
@@ -87,9 +87,9 @@ export function DashboardCards({data}: { data: DashboardData }) {
     }
 
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Files Shared Card */}
-            <Card>
+            <Card className="min-w-[150px]">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Files Shared</CardTitle>
                     <Share2Icon className="h-4 w-4 text-blue-500"/>
@@ -103,7 +103,7 @@ export function DashboardCards({data}: { data: DashboardData }) {
             </Card>
 
             {/* Storage Card */}
-            <Card>
+            <Card className="min-w-[150px]">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Storage</CardTitle>
                     <DatabaseIcon className="h-4 w-4 text-green-500"/>
@@ -152,7 +152,7 @@ export function DashboardCards({data}: { data: DashboardData }) {
 
 
             {/* Current Role Card */}
-            <Card>
+            <Card className="min-w-[150px]">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Current Role</CardTitle>
                     <UserCheckIcon className="h-4 w-4 text-purple-500"/>
@@ -169,7 +169,7 @@ export function DashboardCards({data}: { data: DashboardData }) {
 
 
             {/* Security Alerts */}
-            <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : "border-2 border-rose-100"}>
+            <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : "min-w-[150px] border-2 border-rose-100"}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Security Alerts</CardTitle>
                     {data.userRole === 'Guest' ? (
@@ -253,7 +253,7 @@ export function DashboardCards({data}: { data: DashboardData }) {
             </Card>
 
             {/*Upload Card*/}
-            <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : ""}>
+            <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : "min-w-[150px]"}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle>Upload Files</CardTitle>
                     {data.userRole === 'Guest' && <LockIcon className="h-4 w-4 text-red-500"/>}
