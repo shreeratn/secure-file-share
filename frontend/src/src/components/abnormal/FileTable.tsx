@@ -33,6 +33,8 @@ import {
     Trash2,
 } from "lucide-react"
 import {Tabs, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import { ShareDrawer } from "./ShareDrawer.tsx"
+import { useToast } from "@/components/ui/use-toast"
 
 export interface File {
     id: string
@@ -111,18 +113,21 @@ export const columns: ColumnDef<File>[] = [
     },
     {
         id: "actions",
-        cell: ({row}) => (
+        cell: ({ row }) => (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0">
-                        <MoreVertical className="h-4 w-4"/>
+                        <MoreVertical className="h-4 w-4" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => console.log('Download', row.original)}>
                         Download
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => console.log('Share', row.original)}>
+                    <DropdownMenuItem onClick={() => {
+                        setSelectedFile(row.original)
+                        setShareDrawerOpen(true)
+                    }}>
                         Share
                     </DropdownMenuItem>
                     <DropdownMenuItem
@@ -181,6 +186,96 @@ const sharedColumns: ColumnDef<File>[] = [
 export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
     const [activeTab, setActiveTab] = useState<'owned' | 'shared'>(userRole === 'Guest' ? 'shared' : 'owned')
     const [rowSelection, setRowSelection] = useState({})
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    const [shareDrawerOpen, setShareDrawerOpen] = useState(false)
+
+    const columns: ColumnDef<File>[] = [
+        {
+            id: "select",
+            header: ({table}) => (
+                <Checkbox
+                    checked={table.getIsAllPageRowsSelected()}
+                    onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                    aria-label="Select all"
+                />
+            ),
+            cell: ({row}) => (
+                <Checkbox
+                    checked={row.getIsSelected()}
+                    onCheckedChange={(value) => row.toggleSelected(!!value)}
+                    aria-label="Select row"
+                />
+            ),
+        },
+        {
+            accessorKey: "name",
+            header: "File Name",
+        },
+        {
+            accessorKey: "size",
+            header: "Size",
+        },
+        {
+            accessorKey: "extension",
+            header: "Type",
+            cell: ({row}) => (
+                <Badge variant="outline">{row.getValue("extension").toUpperCase()}</Badge>
+            ),
+        },
+        {
+            accessorKey: "isShared",
+            header: "Status",
+            cell: ({row}) => row.original.isShared ? (
+                <div className="flex items-center gap-2">
+                    <Share2 className="h-4 w-4 text-green-500"/>
+                    <span>Shared</span>
+                </div>
+            ) : (
+                <div className="flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-red-500"/>
+                    <span>Private</span>
+                </div>
+            ),
+        },
+        {
+            accessorKey: "expiry",
+            header: "Expires In",
+        },
+        {
+            accessorKey: "uploadedAt",
+            header: "Upload Date",
+            cell: ({row}) => new Date(row.original.uploadedAt).toLocaleDateString(),
+        },
+        {
+            id: "actions",
+            cell: ({ row }) => (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => console.log('Download', row.original)}>
+                            Download
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                            setSelectedFile(row.original)
+                            setShareDrawerOpen(true)
+                        }}>
+                            Share
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => console.log('Delete', row.original)}
+                            className="text-red-500"
+                        >
+                            Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ),
+        },
+    ]
 
     const table = useReactTable({
         data: activeTab === 'owned' ? ownedFiles : sharedFiles,
@@ -193,7 +288,7 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
     })
 
     return (
-        <div className="rounded-md border mt-4 flex flex-col h-[calc(100vh-420px)]">
+        <div className="rounded-md border mt-4 flex flex-col h-[calc(100vh-520px)]">
             <div className="flex items-center justify-between p-4 border-b">
                 <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'owned' | 'shared')}>
                     <TabsList>
@@ -264,6 +359,18 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
                     </TableBody>
                 </Table>
             </div>
+
+            {selectedFile && (
+                <ShareDrawer
+                    file={selectedFile}
+                    open={shareDrawerOpen}
+                    onClose={() => {
+                        setShareDrawerOpen(false)
+                        setSelectedFile(null)
+                    }}
+                />
+            )}
+
         </div>
     )
 }

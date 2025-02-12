@@ -2,6 +2,9 @@
 import { FileTable } from "./FileTable"
 import { DashboardCards, DashboardData } from "./DashboardCards"
 import { File } from "./FileTable.tsx"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import {AuroraText} from "../magicui/aurora-text.tsx";
 
 const generateDates = (daysBack: number) => {
     const date = new Date()
@@ -207,8 +210,21 @@ export default function DashboardPage() {
     return (
         <div className="hidden flex-col md:flex">
             <div className="flex-1 space-y-4 p-8 pt-6">
+                {/* New top card */}
+                <Card className="w-full mb-4">
+                    <CardContent className="flex justify-between items-center p-3">
+                        <h1 className="text-3xl font-bold tracking-tighter">
+                            Assignment by <AuroraText>Shree Ratn</AuroraText>
+                        </h1>
+                        <div className="flex gap-4">
+                            <Button variant="outline">Complete MFA</Button>
+                            <Button variant="destructive">Logout</Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* Your existing cards */}
-                <DashboardCards data={dummyData} />
+                <DashboardCards data={dummyData}/>
 
                 {/* New file table */}
                 <FileTable
