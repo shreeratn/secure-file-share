@@ -183,7 +183,7 @@ const dummyData: DashboardData = {
     totalFiles: 298,
     usedStorageGB: 0.32,
     activeLinks: 23,
-    userRole: "Regular",
+    userRole: "Admin",
     encryptionPercent: 98,
     sharedLinks: {
         total: 142,

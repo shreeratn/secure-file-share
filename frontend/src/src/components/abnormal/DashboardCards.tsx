@@ -1,10 +1,11 @@
 import {useMemo} from "react"
 import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card"
-import {AlertTriangleIcon, DatabaseIcon, LinkIcon, Share2Icon, ShieldCheckIcon, UserCheckIcon,} from "lucide-react"
+import {AlertTriangleIcon, DatabaseIcon, LinkIcon, Share2Icon, ShieldCheckIcon, UserCheckIcon, LockIcon} from "lucide-react"
 import {Cell, Pie, PieChart} from "recharts"
 import {ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent} from "@/components/ui/chart"
 import {Progress} from "@/components/ui/progress"
 import { CardFooter } from "../ui/card"
+import {HyperText} from "../magicui/hyper-text.tsx";
 
 // Chart configuration
 const storageChartConfig = {
@@ -46,6 +47,19 @@ export interface DashboardData {
 }
 
 const STORAGE_LIMIT_GB = 1
+
+const LOCKED_CARD_CLASS = "border-2 border-yellow-200 shadow-sm shadow-yellow-600/100 relative"
+
+const LockedContent = () => (
+    <>
+        <CardContent className="flex items-center">
+            <HyperText className="text-2xl font-bold text-red-600">Locked!</HyperText>
+        </CardContent>
+        <CardFooter className="text-xs text-muted-foreground">
+            Contact your Admin to upgrade to Regular user to view analytics
+        </CardFooter>
+    </>
+)
 
 const formatStorage = (valueGB: number) => {
     if (valueGB >= 1) {
@@ -155,23 +169,32 @@ export function DashboardCards({data}: { data: DashboardData }) {
 
 
             {/* Security Alerts */}
-            <Card className="border-2 border-rose-100">
+            <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : "border-2 border-rose-100"}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Security Alerts</CardTitle>
-                    <AlertTriangleIcon className="h-4 w-4 text-rose-500"/>
+                    {data.userRole === 'Guest' ? (
+                        <LockIcon className="h-4 w-4 text-red-500"/>
+                    ) : (
+                        <AlertTriangleIcon className="h-4 w-4 text-rose-500"/>
+                    )}
                 </CardHeader>
-                <CardContent>
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                            <span className="flex h-3 w-3 rounded-full bg-rose-500"/>
-                            <p>{data.securityAlerts.failedDecryptAttempts} Failed Decryption Attempts</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="flex h-3 w-3 rounded-full bg-yellow-500"/>
-                            <p>{data.securityAlerts.pendingMFASetups} MFA Setups Pending</p>
-                        </div>
-                    </div>
-                </CardContent>
+                {data.userRole === 'Guest' ? (
+                        <LockedContent/>
+                    ) :
+                    (
+                        <CardContent>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="flex h-3 w-3 rounded-full bg-rose-500"/>
+                                    <p>{data.securityAlerts.failedDecryptAttempts} Failed Decryption Attempts</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="flex h-3 w-3 rounded-full bg-yellow-500"/>
+                                    <p>{data.securityAlerts.pendingMFASetups} MFA Setups Pending</p>
+                                </div>
+                            </div>
+                        </CardContent>)
+                }
             </Card>
 
             {/* Encryption Health */}
@@ -180,52 +203,71 @@ export function DashboardCards({data}: { data: DashboardData }) {
                     <CardTitle className="text-sm font-medium">Encryption Health</CardTitle>
                     <ShieldCheckIcon className="h-4 w-4 text-emerald-500"/>
                 </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{data.encryptionPercent}%</div>
-                    <p className="text-sm text-muted-foreground mb-1.5">Files Encrypted</p>
-                    <Progress value={data.encryptionPercent} className="h-2"/>
-                </CardContent>
+                {
+                    data.userRole === 'Guest' ? (<CardContent>
+                        <div className="text-2xl text-green-600 font-bold">{100}%</div>
+                        <p className="text-sm text-green-600 mb-1.5">Files Encrypted</p>
+                        <Progress value={100} className="h-2 bg-green-600"/>
+                    </CardContent>) : (<CardContent>
+                        <div className="text-2xl font-bold">{data.encryptionPercent}%</div>
+                        <p className="text-sm text-muted-foreground mb-1.5">Files Encrypted</p>
+                        <Progress value={data.encryptionPercent} className="h-2"/>
+                    </CardContent>)
+                }
                 <CardFooter className="text-xs text-muted-foreground">
                     AES-256 Active | Last Audit: 2h ago
                 </CardFooter>
             </Card>
 
             {/* Shared Links Card */}
-            <Card>
+            <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : ""}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Shared Links</CardTitle>
-                    <LinkIcon className="h-4 w-4 text-pink-500"/>
+                    {data.userRole === 'Guest' ? (
+                        <LockIcon className="h-4 w-4 text-red-500"/>
+                    ) : (
+                        <LinkIcon className="h-4 w-4 text-pink-500"/>
+                    )}
                 </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{data.sharedLinks.total}</div>
-                    <p className="text-sm text-muted-foreground">Total Links</p>
-                    <div className="grid grid-cols-3 gap-2 mt-2">
-                        <div>
-                            <p className="text-lg font-bold">{data.activeLinks}</p>
-                            <p className="text-xs text-muted-foreground">Active</p>
+                {data.userRole === 'Guest' ? (
+                        <LockedContent/>
+                    ) :
+                    (<CardContent>
+                        <div className="text-2xl font-bold">{data.sharedLinks.total}</div>
+                        <p className="text-sm text-muted-foreground">Total Links</p>
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                            <div>
+                                <p className="text-lg font-bold">{data.activeLinks}</p>
+                                <p className="text-xs text-muted-foreground">Active</p>
+                            </div>
+                            <div>
+                                <p className="text-lg font-bold">{data.sharedLinks.viewOnly}</p>
+                                <p className="text-xs text-muted-foreground">View-only</p>
+                            </div>
+                            <div>
+                                <p className="text-lg font-bold">{data.sharedLinks.downloadable}</p>
+                                <p className="text-xs text-muted-foreground">Downloadable</p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-lg font-bold">{data.sharedLinks.viewOnly}</p>
-                            <p className="text-xs text-muted-foreground">View-only</p>
-                        </div>
-                        <div>
-                            <p className="text-lg font-bold">{data.sharedLinks.downloadable}</p>
-                            <p className="text-xs text-muted-foreground">Downloadable</p>
-                        </div>
-                    </div>
-                </CardContent>
+                    </CardContent>)}
             </Card>
 
-            <Card>
-                <CardHeader>
+            {/*Upload Card*/}
+            <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : ""}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle>Upload Files</CardTitle>
+                    {data.userRole === 'Guest' && <LockIcon className="h-4 w-4 text-red-500"/>}
                 </CardHeader>
-                <CardContent>
-                    <div className="border-dashed border-2 border-gray-300 p-4 rounded-md text-center">
-                        <p className="text-sm text-gray-500">Drag and drop files here or</p>
-                        <button className="text-blue-500">Browse Files</button>
-                    </div>
-                </CardContent>
+                {data.userRole === 'Guest' ? (
+                        <LockedContent/>
+                    ) :
+                    (
+                        <CardContent>
+                            <div className="border-dashed border-2 border-gray-300 p-4 rounded-md text-center">
+                                <p className="text-sm text-gray-500">Drag and drop files here or</p>
+                                <button className="text-blue-500">Browse Files</button>
+                            </div>
+                        </CardContent>)}
             </Card>
 
         </div>
