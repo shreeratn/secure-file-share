@@ -53,7 +53,18 @@ export default {
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
   			}
-  		}
+  		},
+
+		  // LineShadow
+		animation: {
+			"line-shadow": "line-shadow 15s linear infinite",
+		},
+		keyframes: {
+			"line-shadow": {
+				"0%": { "background-position": "0 0" },
+				"100%": { "background-position": "100% -100%" },
+			},
+		},
   	}
   },
   plugins: [require("tailwindcss-animate")],
