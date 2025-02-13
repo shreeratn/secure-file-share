@@ -7,6 +7,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import {AuroraText} from "../magicui/aurora-text.tsx";
 import { useNavigate } from 'react-router-dom';
 import {authService} from "../../services/auth.ts";
+import {MFADrawer} from "./MFADrawer.tsx";
+import {useState} from "react";
 
 
 const generateDates = (daysBack: number) => {
@@ -212,6 +214,8 @@ const dummyData: DashboardData = {
 export default function DashboardPage() {
 
     const navigate = useNavigate();
+    const [isMFADrawerOpen, setIsMFADrawerOpen] = useState(false);
+
 
     const handleLogout = async () => {
         try {
@@ -226,29 +230,40 @@ export default function DashboardPage() {
     return (
         <div className="flex-col md:flex">
             <div className="flex-1 space-y-4 p-8 pt-6">
-                {/* New top card */}
                 <Card className="w-full mb-4">
                     <CardContent className="flex justify-between items-center p-3">
                         <h1 className="text-3xl font-bold tracking-tighter">
                             Secure File Share by <AuroraText>Shree Ratn</AuroraText>
                         </h1>
                         <div className="flex gap-4">
-                            {localStorage.getItem('isMFAenabled') && (<Button variant="outline">Complete MFA</Button>)}
-                            <Button variant="destructive" onClick={handleLogout}>Logout</Button>
+                            {!localStorage.getItem('isMFAenabled') && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setIsMFADrawerOpen(true)}
+                                >
+                                    Complete MFA
+                                </Button>
+                            )}
+                            <Button variant="destructive" onClick={handleLogout}>
+                                Logout
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Your existing cards */}
                 <DashboardCards data={dummyData}/>
-
-                {/* New file table */}
                 <FileTable
-                    userRole="Admin" // or 'Guest'/'Admin'
+                    userRole="Admin"
                     ownedFiles={dummyOwnedFiles}
                     sharedFiles={dummySharedFiles}
                 />
+
+                {isMFADrawerOpen && (<MFADrawer
+                    isOpen={isMFADrawerOpen}
+                    onClose={() => setIsMFADrawerOpen(false)}
+                />)}
             </div>
         </div>
     )
+
 }
