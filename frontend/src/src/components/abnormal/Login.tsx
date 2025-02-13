@@ -5,6 +5,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useForm } from "react-hook-form"
+import {useToast} from "../../hooks/use-toast.ts";
+import { useNavigate } from "react-router-dom"
+import { authService } from "@/services/auth"
+
+
 
 export function Login() {
     const [activeTab, setActiveTab] = useState("login")
@@ -12,6 +17,9 @@ export function Login() {
     // Separate forms for login and registration
     const loginForm = useForm()
     const regForm = useForm()
+
+    const navigate = useNavigate();
+    const { toast } = useToast();
 
     const [passwordValid, setPasswordValid] = useState({
         length: false,
@@ -33,14 +41,6 @@ export function Login() {
         })
     }
 
-    const handleLoginSubmit = (data: any) => {
-        console.log("Login Data:", data)
-    }
-
-    const handleRegSubmit = (data: any) => {
-        console.log("Registration Data:", data)
-    }
-
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value
         setPasswordValid({
@@ -50,6 +50,45 @@ export function Login() {
             digit: /\d/.test(value),
         })
         regForm.setValue("regPassword", value) // Update form value
+    }
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            navigate('/dashboard');
+        }
+    }, [navigate]);
+
+    const handleLoginSubmit = async (data: any) => {
+        try {
+            const response = await authService.login(data.username, data.password);
+            localStorage.setItem('token', response.token);
+            localStorage.setItem('refreshToken', response.refresh_token);
+            navigate('/dashboard');
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: error.message
+            });
+        }
+    }
+
+    const handleRegSubmit = async (data: any) => {
+        try {
+            await authService.register(data.name, data.email, data.regPassword);
+            toast({
+                title: "Registration Successful",
+                description: "Please login with your credentials"
+            });
+            setActiveTab("login");
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Registration Failed",
+                description: error.message
+            });
+        }
     }
 
     return (

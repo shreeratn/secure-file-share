@@ -5,6 +5,9 @@ import { File } from "./FileTable.tsx"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {AuroraText} from "../magicui/aurora-text.tsx";
+import { useNavigate } from 'react-router-dom';
+import {authService} from "../../services/auth.ts";
+
 
 const generateDates = (daysBack: number) => {
     const date = new Date()
@@ -207,6 +210,19 @@ const dummyData: DashboardData = {
 }
 
 export default function DashboardPage() {
+
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        try {
+            await authService.logout();
+            navigate('/login');
+        } catch (error) {
+            console.error('Logout failed:', error);
+        }
+    };
+
+
     return (
         <div className="flex-col md:flex">
             <div className="flex-1 space-y-4 p-8 pt-6">
@@ -218,7 +234,7 @@ export default function DashboardPage() {
                         </h1>
                         <div className="flex gap-4">
                             <Button variant="outline">Complete MFA</Button>
-                            <Button variant="destructive">Logout</Button>
+                            <Button variant="destructive" onClick={handleLogout}>Logout</Button>
                         </div>
                     </CardContent>
                 </Card>
