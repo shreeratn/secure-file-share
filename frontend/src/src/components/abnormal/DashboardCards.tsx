@@ -165,6 +165,7 @@ export function DashboardCards({data}: { data: DashboardData }) {
                         account permissions level
                     </p>
                 </CardContent>
+                {/*todo: add email in content footer*/}
             </Card>
 
 

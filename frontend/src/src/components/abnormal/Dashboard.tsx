@@ -233,7 +233,7 @@ export default function DashboardPage() {
                             Secure File Share by <AuroraText>Shree Ratn</AuroraText>
                         </h1>
                         <div className="flex gap-4">
-                            <Button variant="outline">Complete MFA</Button>
+                            {localStorage.getItem('isMFAenabled') && (<Button variant="outline">Complete MFA</Button>)}
                             <Button variant="destructive" onClick={handleLogout}>Logout</Button>
                         </div>
                     </CardContent>

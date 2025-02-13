@@ -64,6 +64,7 @@ export function Login() {
             const response = await authService.login(data.username, data.password);
             localStorage.setItem('token', response.token);
             localStorage.setItem('refreshToken', response.refresh_token);
+            localStorage.setItem('isMFAenabled', response.isMFAenabled.toString());
             navigate('/dashboard');
         } catch (error: any) {
             toast({
