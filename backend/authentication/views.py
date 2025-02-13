@@ -88,3 +88,48 @@ def logout(request):
             "message": "Invalid token",
             "status": "error"
         }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def setup_mfa(request):
+    user = request.user
+    secret = pyotp.random_base32()
+    user.mfa_secret = secret
+    user.save()
+
+    totp = pyotp.TOTP(secret)
+    provisioning_uri = totp.provisioning_uri(
+        user.email,
+        issuer_name="SecureFileShare"
+    )
+
+    return Response({
+        'qr_code': provisioning_uri,
+        'secret': secret
+    })
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def verify_mfa_setup(request):
+    otp = request.data.get('otp')
+    user = request.user
+
+    if not otp:
+        return Response({
+            'message': 'OTP is required'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    totp = pyotp.TOTP(user.mfa_secret)
+    if totp.verify(otp):
+        user.is_mfa_enabled = True
+        user.save()
+        return Response({
+            'message': 'MFA enabled successfully',
+            'success': True
+        })
+
+    return Response({
+        'message': 'Invalid OTP',
+        'success': False
+    }, status=status.HTTP_400_BAD_REQUEST)

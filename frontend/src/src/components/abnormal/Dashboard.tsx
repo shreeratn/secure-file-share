@@ -217,6 +217,9 @@ export default function DashboardPage() {
     const [isMFADrawerOpen, setIsMFADrawerOpen] = useState(false);
 
 
+    const isMFAenabled = localStorage.getItem('isMFAenabled') === 'true';
+    console.log('isMFAenabled:', isMFAenabled); // Debugging statement
+
     const handleLogout = async () => {
         try {
             await authService.logout();
@@ -236,7 +239,7 @@ export default function DashboardPage() {
                             Secure File Share by <AuroraText>Shree Ratn</AuroraText>
                         </h1>
                         <div className="flex gap-4">
-                            {!localStorage.getItem('isMFAenabled') && (
+                            {!isMFAenabled && (
                                 <Button
                                     variant="outline"
                                     onClick={() => setIsMFADrawerOpen(true)}
