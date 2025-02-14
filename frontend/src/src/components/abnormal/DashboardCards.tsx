@@ -8,6 +8,7 @@ import {Button} from "@/components/ui/button"
 import { CardFooter } from "../ui/card"
 import {HyperText} from "../magicui/hyper-text.tsx";
 import {MFAPendingDrawer} from "./people/PeopleMFAPending.tsx";
+import UploadFile from "./UploadFile.tsx";
 
 // Chart configuration
 const storageChartConfig = {
@@ -279,10 +280,7 @@ export function DashboardCards({data}: { data: DashboardData }) {
                     ) :
                     (
                         <CardContent>
-                            <div className="border-dashed border-2 border-gray-300 p-4 rounded-md text-center">
-                                <p className="text-sm text-gray-500">Drag and drop files here or</p>
-                                <button className="text-blue-500">Browse Files</button>
-                            </div>
+                            <UploadFile />
                         </CardContent>)}
             </Card>
 

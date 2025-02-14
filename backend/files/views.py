@@ -47,30 +47,43 @@ def get_shared_files(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def upload_file(request):
-    if request.user.user_type == 'guest':
+    # Check if user is guest
+    if request.user.user_type == User.UserType.GUEST:
         return Response({'error': 'Guests cannot upload files'}, status=status.HTTP_403_FORBIDDEN)
 
-    serializer = FileUploadSerializer(data=request.data)
+    serializer = FileUploadSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
         file = request.FILES['file']
-        max_size = 10485760 if request.user.user_type == 'admin' else 5242880  # 10MB or 5MB
 
+        # Set max file size based on user type
+        max_size = 10485760 if request.user.user_type == User.UserType.ADMIN else 5242880  # 10MB or 5MB
         if file.size > max_size:
-            return Response({'error': 'File size exceeds limit'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'error': f'File size exceeds limit. Maximum size allowed is {max_size/1048576}MB'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        new_file = serializer.save(
-            uploaded_by=request.user,
-            name=file.name,
-            size=file.size,
-            extension=file.name.split('.')[-1],
-            expiry_date=datetime.now() + timedelta(days=serializer.validated_data['expiry_days'])
-        )
+        # Check user's storage limit
+        storage = UserStorage.objects.get_or_create(user=request.user)[0]
+        if storage.used_storage + file.size > storage.allocated_storage:
+            return Response({
+                'error': 'Storage limit exceeded'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        if new_file.status == 'public':
-            new_file.download_link = str(uuid.uuid4())
-            new_file.save()
+        try:
+            # Create file record
+            new_file = serializer.save()
 
-        return Response(FileSerializer(new_file).data, status=status.HTTP_201_CREATED)
+            # Update user's storage usage
+            storage.used_storage += file.size
+            storage.save()
+
+            return Response(FileSerializer(new_file).data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({
+                'error': f'Error uploading file: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['DELETE'])

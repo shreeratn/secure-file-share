@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import File, UserStorage
+from datetime import timedelta, datetime, timezone
+
 
 class FileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,3 +22,21 @@ class FileUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = File
         fields = ['file', 'status', 'expiry_days']
+
+    def create(self, validated_data):
+        # Remove expiry_days from validated_data as it's not a model field
+        expiry_days = validated_data.pop('expiry_days', 7)
+        file_obj = validated_data.pop('file')
+
+        # Create the file instance
+        file_instance = File.objects.create(
+            name=file_obj.name,
+            file=file_obj,
+            extension=file_obj.name.split('.')[-1],
+            size=file_obj.size,
+            uploaded_by=self.context['request'].user,
+            status=validated_data.get('status', 'private'),
+            expiry_date=datetime.now(timezone.utc) + timedelta(days=expiry_days)
+        )
+
+        return file_instance
