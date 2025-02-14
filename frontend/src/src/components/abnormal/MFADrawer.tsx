@@ -11,6 +11,7 @@ import {
     DrawerPortal,
 } from "@/components/ui/drawer"
 import {authService} from "../../services/auth.ts";
+import {useNavigate} from "react-router-dom";
 
 
 interface MFADrawerProps {
@@ -24,6 +25,7 @@ export function MFADrawer({isOpen, onClose}: MFADrawerProps) {
     const [otp, setOtp] = useState("")
     const [step, setStep] = useState<'qr' | 'verify'>('qr')
     const {toast} = useToast()
+    const navigate = useNavigate()
 
     // Fetch QR code when drawer opens
     useEffect(() => {
@@ -57,7 +59,8 @@ export function MFADrawer({isOpen, onClose}: MFADrawerProps) {
                 description: response.message || "MFA enabled successfully",
                 variant: "default"
             });
-            onClose(); // Close the drawer after success
+            onClose();
+            navigate('/dashboard');
         } catch (error: any) {
             toast({
                 title: "Verification Failed",

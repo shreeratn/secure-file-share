@@ -12,6 +12,9 @@ interface LoginResponse {
 interface RegisterResponse {
     message: string;
     user_id: number;
+    token: string;
+    refresh_token: string;
+    isMFAenabled: boolean;
 }
 
 interface LogoutResponse {
@@ -27,6 +30,9 @@ interface MFASetupResponse {
 interface MFAVerifyResponse {
     message: string;
     success: boolean;
+    token: string;
+    refresh_token: string;
+    isMFAenabled: boolean;
 }
 
 export const authService = {
@@ -66,9 +72,14 @@ export const authService = {
             const token = localStorage.getItem('token');
             const refreshToken = localStorage.getItem('refreshToken');
 
+            if (!token || !refreshToken) {
+                localStorage.clear();
+                throw new Error('No active session');
+            }
+
             const response = await axios.post(
                 `${API_BASE_URL}/logout/`,
-                { refresh_token: refreshToken },
+                {refresh_token: refreshToken},
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -76,19 +87,14 @@ export const authService = {
                 }
             );
 
-            // Clear all auth related data from localStorage
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            localStorage.removeItem('userType');
-
+            localStorage.clear();
             return response.data;
         } catch (error: any) {
+            localStorage.clear();
             if (error.response?.status === 401) {
-                // Clear localStorage even if the request fails
-                localStorage.clear();
                 throw new Error('Session expired');
             }
-            throw new Error('Logout failed. Please try again.');
+            throw error;
         }
     },
 
@@ -118,7 +124,7 @@ export const authService = {
 
             const response = await axios.post(
                 `${API_BASE_URL}/mfa/verify/`,
-                { otp },
+                {otp},
                 {
                     headers: {
                         'Content-Type': 'application/json',
@@ -128,18 +134,16 @@ export const authService = {
             );
             if (response.data.success) {
                 localStorage.setItem('isMFAenabled', 'true');
+                localStorage.setItem('token', response.data.token);
+                localStorage.setItem('refreshToken', response.data.refresh_token);
             }
             return response.data;
         } catch (error: any) {
             if (error.response?.data?.code === 'token_not_valid') {
-                // Handle expired token
                 localStorage.removeItem('token');
                 throw new Error('Session expired. Please login again.');
             }
             throw new Error('MFA verification failed');
         }
     }
-
-
-
 };

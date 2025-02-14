@@ -218,7 +218,6 @@ export default function DashboardPage() {
 
 
     const isMFAenabled = localStorage.getItem('isMFAenabled') === 'true';
-    console.log('isMFAenabled:', isMFAenabled); // Debugging statement
 
     const handleLogout = async () => {
         try {
@@ -226,8 +225,20 @@ export default function DashboardPage() {
             navigate('/login');
         } catch (error) {
             console.error('Logout failed:', error);
+            // Force navigate to login on any error
+            navigate('/login');
         }
     };
+
+    // Check token before opening MFA drawer
+    const handleMFAClick = () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+        setIsMFADrawerOpen(true);
+    }
 
 
     return (
@@ -242,7 +253,7 @@ export default function DashboardPage() {
                             {!isMFAenabled && (
                                 <Button
                                     variant="outline"
-                                    onClick={() => setIsMFADrawerOpen(true)}
+                                    onClick={() => handleMFAClick()}
                                 >
                                     Complete MFA
                                 </Button>

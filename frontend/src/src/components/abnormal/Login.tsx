@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form"
 import {useToast} from "../../hooks/use-toast.ts";
 import { useNavigate } from "react-router-dom"
 import { authService } from "@/services/auth"
+import { MFASetupDialog } from "./MFASetupDialog.tsx"
 
 
 
@@ -20,6 +21,8 @@ export function Login() {
 
     const navigate = useNavigate();
     const { toast } = useToast();
+
+    const [showMFADialog, setShowMFADialog] = useState(false)
 
     const [passwordValid, setPasswordValid] = useState({
         length: false,
@@ -80,15 +83,28 @@ export function Login() {
             await authService.register(data.name, data.email, data.regPassword);
             toast({
                 title: "Registration Successful",
-                description: "Please login with your credentials"
+                description: "Please complete the MFA Setup as well"
             });
-            setActiveTab("login");
+            const loginResponse = await authService.login(data.email, data.regPassword);
+            localStorage.setItem('token', loginResponse.token);
+            localStorage.setItem('refreshToken', loginResponse.refresh_token);
+            localStorage.setItem('isMFAenabled', loginResponse.isMFAenabled.toString());
+            setShowMFADialog(true);
         } catch (error: any) {
-            toast({
-                variant: "destructive",
-                title: "Registration Failed",
-                description: error.message
-            });
+            if (error.response && error.response.data && error.response.data.email) {
+                toast({
+                    variant: "destructive",
+                    title: "Registration Failed",
+                    description: error.response.data.email[0]
+                });
+            } else {
+                console.log(error, data)
+                toast({
+                    variant: "destructive",
+                    title: "Registration Failed",
+                    description: error.message
+                });
+            }
         }
     }
 
@@ -200,6 +216,10 @@ export function Login() {
                     </CardContent>
                 </Card>
             </TabsContent>
+            <MFASetupDialog
+                isOpen={showMFADialog}
+                onClose={() => setShowMFADialog(false)}
+            />
         </Tabs>
     )
 }
