@@ -109,24 +109,33 @@ def setup_mfa(request):
         'secret': secret
     })
 
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+
+
 def verify_mfa_setup(request):
     otp = request.data.get('otp')
     user = request.user
 
-    if not otp:
+    if not otp or not user.mfa_secret:
         return Response({
-            'message': 'OTP is required'
+            'message': 'Invalid OTP or MFA not set up',
+            'success': False
         }, status=status.HTTP_400_BAD_REQUEST)
 
+    # Add tolerance window for TOTP verification
     totp = pyotp.TOTP(user.mfa_secret)
-    if totp.verify(otp):
+    if totp.verify(otp, valid_window=3):  # Allow 1 window before/after
         user.is_mfa_enabled = True
         user.save()
+        refresh = RefreshToken.for_user(user)
         return Response({
             'message': 'MFA enabled successfully',
-            'success': True
+            'success': True,
+            'token': str(refresh.access_token),
+            'refresh_token': str(refresh),
+            'isMFAenabled': user.is_mfa_enabled
         })
 
     return Response({
