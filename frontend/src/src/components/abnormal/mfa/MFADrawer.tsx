@@ -10,7 +10,7 @@ import {
     DrawerOverlay,
     DrawerPortal,
 } from "@/components/ui/drawer"
-import {authService} from "../../services/auth.ts";
+import {authService} from "../../../services/auth.ts";
 import {useNavigate} from "react-router-dom";
 
 

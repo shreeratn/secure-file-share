@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import {AuroraText} from "../magicui/aurora-text.tsx";
 import { useNavigate } from 'react-router-dom';
 import {authService} from "../../services/auth.ts";
-import {MFADrawer} from "./MFADrawer.tsx";
+import {MFADrawer} from "./mfa/MFADrawer.tsx";
 import {useState} from "react";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";

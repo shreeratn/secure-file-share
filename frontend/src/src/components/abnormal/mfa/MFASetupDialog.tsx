@@ -7,9 +7,9 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
-import { MFADrawer } from "./MFADrawer"
+import { MFADrawer } from "./MFADrawer.tsx"
 import { useNavigate } from "react-router-dom"
-import { authService } from "../../services/auth.ts"
+import { authService } from "../../../services/auth.ts"
 import { useToast } from "@/hooks/use-toast"
 
 interface MFASetupDialogProps {

@@ -8,8 +8,8 @@ import { useForm } from "react-hook-form"
 import {useToast} from "../../hooks/use-toast.ts";
 import { useNavigate } from "react-router-dom"
 import { authService } from "@/services/auth"
-import { MFASetupDialog } from "./MFASetupDialog.tsx"
-import { MFAVerifyDialog } from "./MFAVerifyDialogProps.tsx"
+import { MFASetupDialog } from "./mfa/MFASetupDialog.tsx"
+import { MFAVerifyDialog } from "./mfa/MFAVerifyDialogProps.tsx"
 
 
 
