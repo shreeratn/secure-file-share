@@ -8,6 +8,7 @@ const UploadFile: React.FC = () => {
     const [expiryDays, setExpiryDays] = useState<number>(1);
     const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
     const [isUploading, setIsUploading] = useState<boolean>(false);
+    const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
     const {toast} = useToast();
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,6 +48,10 @@ const UploadFile: React.FC = () => {
             });
 
             handleCancel(); // Reset and close drawer
+            setIsRefreshing(true);
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000); // Short delay before refreshing the page
         } catch (error: any) {
             toast({
                 variant: "destructive",
@@ -57,6 +62,17 @@ const UploadFile: React.FC = () => {
             setIsUploading(false);
         }
     };
+
+    if (isRefreshing) {
+        return (
+            <div className="h-screen w-screen flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+                    <p className="text-sm text-muted-foreground">Refreshing your secure workspace...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div>

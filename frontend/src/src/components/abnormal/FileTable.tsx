@@ -37,6 +37,7 @@ import { ShareDrawer } from "./ShareDrawer.tsx"
 import { useToast } from "@/components/ui/use-toast"
 
 export interface File {
+    expiry_date: string;
     id: string
     name: string
     size: any
@@ -46,6 +47,7 @@ export interface File {
     sharedBy?: string
     uploadedAt?: Date
     sharedAt?: Date
+    uploaded_date?: String
 }
 
 interface FileTableProps {
@@ -79,6 +81,7 @@ export const columns: ColumnDef<File>[] = [
     {
         accessorKey: "size",
         header: "Size",
+        cell: ({ row }) => formatFileSize(row.getValue("size")),
     },
     {
         accessorKey: "extension",
@@ -150,6 +153,7 @@ const sharedColumns: ColumnDef<File>[] = [
     {
         accessorKey: "size",
         header: "Size",
+        cell: ({ row }) => formatFileSize(row.getValue("size")),
     },
     {
         accessorKey: "extension",
@@ -183,6 +187,14 @@ const sharedColumns: ColumnDef<File>[] = [
     },
 ]
 
+function formatFileSize(size: number): string {
+    if (size >= 1024 * 1024 * 300) {
+        return (size / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+    } else {
+        return (size / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+}
+
 export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
     const [activeTab, setActiveTab] = useState<'owned' | 'shared'>(userRole === 'Guest' ? 'shared' : 'owned')
     const [rowSelection, setRowSelection] = useState({})
@@ -214,6 +226,7 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
         {
             accessorKey: "size",
             header: "Size",
+            cell: ({ row }) => formatFileSize(row.getValue("size")),
         },
         {
             accessorKey: "extension",
@@ -240,11 +253,26 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
         {
             accessorKey: "expiry",
             header: "Expires In",
+            cell: ({ row }) => {
+                const expiryDate = row.original.expiry_date; // match the exact field name from API
+                if (!expiryDate) return "-";
+
+                // Calculate remaining days
+                const now = new Date();
+                const expiry = new Date(expiryDate);
+                const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+
+                return `${diffDays} days`;
+            }
+
         },
         {
             accessorKey: "uploadedAt",
             header: "Upload Date",
-            cell: ({row}) => new Date(row.original.uploadedAt).toLocaleDateString(),
+            cell: ({ row }) => {
+                const date = row.original["uploaded_date"];
+                return date ? new Date(date).toLocaleDateString() : "-";
+            }
         },
         {
             id: "actions",
