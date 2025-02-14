@@ -1,11 +1,13 @@
-import {useMemo} from "react"
+import {useMemo, useState} from "react"
 import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card"
 import {AlertTriangleIcon, DatabaseIcon, LinkIcon, Share2Icon, ShieldCheckIcon, UserCheckIcon, LockIcon} from "lucide-react"
 import {Cell, Pie, PieChart} from "recharts"
 import {ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent} from "@/components/ui/chart"
 import {Progress} from "@/components/ui/progress"
+import {Button} from "@/components/ui/button"
 import { CardFooter } from "../ui/card"
 import {HyperText} from "../magicui/hyper-text.tsx";
+import {MFAPendingDrawer} from "./people/PeopleMFAPending.tsx";
 
 // Chart configuration
 const storageChartConfig = {
@@ -79,6 +81,8 @@ export function DashboardCards({data}: { data: DashboardData }) {
         free: formatStorage(STORAGE_LIMIT_GB - data.usedStorageGB),
         used: formatStorage(data.usedStorageGB),
     }), [data.usedStorageGB])
+
+    const [peopleDrawerOpen, setPeopleDrawerOpen] = useState(false)
 
     const roleColors = {
         Guest: 'text-gray-500',
@@ -183,18 +187,29 @@ export function DashboardCards({data}: { data: DashboardData }) {
                         <LockedContent/>
                     ) :
                     (
-                        <CardContent>
+                       <CardContent>
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2">
                                     <span className="flex h-3 w-3 rounded-full bg-rose-500"/>
                                     <p>{data.securityAlerts.failedDecryptAttempts} Failed Decryption Attempts</p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="flex h-3 w-3 rounded-full bg-yellow-500"/>
-                                    <p>{data.securityAlerts.pendingMFASetups} MFA Setups Pending</p>
+                                    <span className={`flex h-3 w-3 rounded-full ${data.securityAlerts.pendingMFASetups > 0 ? 'bg-yellow-500' : 'bg-green-500'}`}/>
+                                    {data.securityAlerts.pendingMFASetups > 0 ? (
+                                        <Button
+                                            variant="outline"
+                                            className="text-yellow-500"
+                                            onClick={() => setPeopleDrawerOpen(true)}
+                                        >
+                                            {data.securityAlerts.pendingMFASetups} MFA Setups Pending
+                                        </Button>
+                                    ) : (
+                                        <p className="text-green-500">No MFA Pending</p>
+                                    )}
                                 </div>
                             </div>
-                        </CardContent>)
+                        </CardContent>
+                    )
                 }
             </Card>
 
@@ -271,6 +286,13 @@ export function DashboardCards({data}: { data: DashboardData }) {
                         </CardContent>)}
             </Card>
 
+            {/*People drawer for pending MFA*/}
+            {peopleDrawerOpen && (
+                <MFAPendingDrawer
+                    isOpen={peopleDrawerOpen}
+                    onClose={() => setPeopleDrawerOpen(false)}
+                />
+            )}
         </div>
     )
 }

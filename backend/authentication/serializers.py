@@ -1,3 +1,4 @@
+from datetime import timedelta, datetime, timezone
 from rest_framework import serializers
 from .models import User
 import re
@@ -67,3 +68,18 @@ class UserRoleUpdateSerializer(serializers.ModelSerializer):
         if value not in [User.UserType.GUEST, User.UserType.REGULAR, User.UserType.ADMIN]:
             raise serializers.ValidationError("Invalid user type")
         return value
+
+class MFAPendingUserSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source='first_name')
+    user_since = serializers.DateTimeField(source='date_joined')
+    days_left = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ('id', 'name', 'email', 'user_since', 'days_left')
+
+    def get_days_left(self, obj):
+        joined_date = obj.date_joined
+        deadline = joined_date + timedelta(days=7)
+        days_left = (deadline - datetime.now(timezone.utc)).days
+        return max(0, days_left)

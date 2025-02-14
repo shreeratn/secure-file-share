@@ -5,8 +5,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 import pyotp
-
-from .serializers import UserRegistrationSerializer, LoginSerializer, MFASerializer
+from django.utils import timezone
+from datetime import timedelta
+from .serializers import UserRegistrationSerializer, LoginSerializer, MFASerializer, MFAPendingUserSerializer
 from .models import User
 
 
@@ -189,3 +190,20 @@ def update_user_role(request, user_id):
             "user": UserListSerializer(user).data
         })
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_mfa_pending_users(request):
+    if request.user.user_type != User.UserType.ADMIN:
+        return Response({
+            "error": "Only admin users can access this endpoint"
+        }, status=status.HTTP_403_FORBIDDEN)
+
+    users = User.objects.filter(
+        is_mfa_enabled=False,
+        date_joined__gte=timezone.now() - timedelta(days=7)
+    ).order_by('date_joined')
+
+    serializer = MFAPendingUserSerializer(users, many=True)
+    return Response(serializer.data)
