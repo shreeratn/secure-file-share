@@ -9,6 +9,7 @@ import {useToast} from "../../hooks/use-toast.ts";
 import { useNavigate } from "react-router-dom"
 import { authService } from "@/services/auth"
 import { MFASetupDialog } from "./MFASetupDialog.tsx"
+import { MFAVerifyDialog } from "./MFAVerifyDialogProps.tsx"
 
 
 
@@ -21,6 +22,9 @@ export function Login() {
 
     const navigate = useNavigate();
     const { toast } = useToast();
+
+    const [showMFAVerifyDialog, setShowMFAVerifyDialog] = useState(false);
+    const [loginData, setLoginData] = useState<any>(null);
 
     const [showMFADialog, setShowMFADialog] = useState(false)
 
@@ -65,10 +69,16 @@ export function Login() {
     const handleLoginSubmit = async (data: any) => {
         try {
             const response = await authService.login(data.username, data.password);
-            localStorage.setItem('token', response.token);
-            localStorage.setItem('refreshToken', response.refresh_token);
-            localStorage.setItem('isMFAenabled', response.isMFAenabled.toString());
-            navigate('/dashboard');
+
+            if (response.isMFAenabled) {
+                // Store login data temporarily
+                setLoginData(response);
+                // Show MFA verification dialog
+                setShowMFAVerifyDialog(true);
+            } else {
+                // Complete login for non-MFA users
+                completeLogin(response);
+            }
         } catch (error: any) {
             toast({
                 variant: "destructive",
@@ -77,6 +87,21 @@ export function Login() {
             });
         }
     }
+
+    const completeLogin = (response: any) => {
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('refreshToken', response.refresh_token);
+        localStorage.setItem('isMFAenabled', response.isMFAenabled.toString());
+        navigate('/dashboard');
+    }
+
+    const handleMFASuccess = () => {
+        setShowMFAVerifyDialog(false);
+        if (loginData) {
+            completeLogin(loginData);
+        }
+    }
+
 
     const handleRegSubmit = async (data: any) => {
         try {
@@ -219,6 +244,11 @@ export function Login() {
             <MFASetupDialog
                 isOpen={showMFADialog}
                 onClose={() => setShowMFADialog(false)}
+            />
+            <MFAVerifyDialog
+                isOpen={showMFAVerifyDialog}
+                onClose={() => setShowMFAVerifyDialog(false)}
+                onSuccess={handleMFASuccess}
             />
         </Tabs>
     )

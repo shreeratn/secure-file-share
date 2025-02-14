@@ -35,6 +35,7 @@ interface MFAVerifyResponse {
     isMFAenabled: boolean;
 }
 
+let tempTokenForMFA= ""
 export const authService = {
     login: async (email: string, password: string): Promise<LoginResponse> => {
         try {
@@ -42,6 +43,7 @@ export const authService = {
                 email,
                 password
             });
+            tempTokenForMFA = response.data.token;
             return response.data;
         } catch (error: any) {
             if (error.response?.status === 401) {
@@ -117,7 +119,7 @@ export const authService = {
 
     verifyMFA: async (otp: string): Promise<MFAVerifyResponse> => {
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('token') || tempTokenForMFA;
             if (!token) {
                 throw new Error('No authentication token found');
             }
@@ -136,6 +138,7 @@ export const authService = {
                 localStorage.setItem('isMFAenabled', 'true');
                 localStorage.setItem('token', response.data.token);
                 localStorage.setItem('refreshToken', response.data.refresh_token);
+                tempTokenForMFA = "";
             }
             return response.data;
         } catch (error: any) {
