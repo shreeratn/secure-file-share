@@ -9,6 +9,9 @@ import { useNavigate } from 'react-router-dom';
 import {authService} from "../../services/auth.ts";
 import {MFADrawer} from "./MFADrawer.tsx";
 import {useState} from "react";
+import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
+import { fileService } from "@/services/files";
 
 
 const generateDates = (daysBack: number) => {
@@ -188,7 +191,7 @@ const dummyData: DashboardData = {
     totalFiles: 298,
     usedStorageGB: 0.32,
     activeLinks: 23,
-    userRole: "Guest",
+    userRole: "Admin",
     encryptionPercent: 98,
     sharedLinks: {
         total: 142,
@@ -211,13 +214,51 @@ const dummyData: DashboardData = {
     },
 }
 
-export default function DashboardPage() {
+interface FileData {
+    id: string;
+    name: string;
+    size: string;
+    extension: string;
+    status: string;
+    expiry?: string;
+    uploadedAt?: string;
+    sharedBy?: string;
+    sharedAt?: string;
+    downloadLink?: string;
+}
 
+export default function DashboardPage() {
     const navigate = useNavigate();
     const [isMFADrawerOpen, setIsMFADrawerOpen] = useState(false);
-
+    const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [ownedFiles, setOwnedFiles] = useState<FileData[]>([]);
+    const [sharedFiles, setSharedFiles] = useState<FileData[]>([]);
 
     const isMFAenabled = localStorage.getItem('isMFAenabled') === 'true';
+
+    useEffect(() => {
+        const fetchAllData = async () => {
+            try {
+                const [dashboardData, uploadedFiles, sharedFilesData] = await Promise.all([
+                    fileService.getDashboardData(),
+                    fileService.getUploadedFiles(),
+                    fileService.getSharedFiles()
+                ]);
+
+                setDashboardData(dashboardData);
+                setOwnedFiles(uploadedFiles);
+                setSharedFiles(sharedFilesData);
+            } catch (error) {
+                console.error('Failed to fetch data:', error);
+                navigate('/login');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchAllData();
+    }, [navigate]);
 
     const handleLogout = async () => {
         try {
@@ -225,12 +266,10 @@ export default function DashboardPage() {
             navigate('/login');
         } catch (error) {
             console.error('Logout failed:', error);
-            // Force navigate to login on any error
             navigate('/login');
         }
     };
 
-    // Check token before opening MFA drawer
     const handleMFAClick = () => {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -240,6 +279,16 @@ export default function DashboardPage() {
         setIsMFADrawerOpen(true);
     }
 
+    if (isLoading) {
+        return (
+            <div className="h-screen w-screen flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+                    <p className="text-sm text-muted-foreground">Loading your secure workspace...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex-col md:flex">
@@ -265,11 +314,11 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                <DashboardCards data={dummyData}/>
+                {dashboardData && <DashboardCards data={dashboardData} />}
                 <FileTable
-                    userRole="Admin"
-                    ownedFiles={dummyOwnedFiles}
-                    sharedFiles={dummySharedFiles}
+                    userRole={dashboardData?.userRole || 'Guest'}
+                    ownedFiles={ownedFiles}
+                    sharedFiles={sharedFiles}
                 />
 
                 {isMFADrawerOpen && (<MFADrawer
@@ -278,6 +327,6 @@ export default function DashboardPage() {
                 />)}
             </div>
         </div>
-    )
-
+    );
 }
+
