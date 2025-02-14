@@ -48,3 +48,22 @@ class LoginSerializer(serializers.Serializer):
 
 class MFASerializer(serializers.Serializer):
     code = serializers.CharField()
+
+
+class UserListSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source='first_name')
+    member_since = serializers.DateTimeField(source='created_at')
+
+    class Meta:
+        model = User
+        fields = ('id', 'name', 'email', 'user_type', 'is_mfa_enabled', 'member_since')
+
+class UserRoleUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('user_type',)
+
+    def validate_user_type(self, value):
+        if value not in [User.UserType.GUEST, User.UserType.REGULAR, User.UserType.ADMIN]:
+            raise serializers.ValidationError("Invalid user type")
+        return value

@@ -8,4 +8,6 @@ urlpatterns = [
     path("logout/", views.logout, name="logout"),
     path("mfa/setup/", views.setup_mfa, name="mfa-setup"),
     path("mfa/verify/", views.verify_mfa_setup, name="mfa-verify"),
+    path("users/", views.get_all_users, name="get-all-users"),
+    path("users/<int:user_id>/role/", views.update_user_role, name="update-user-role"),
 ]

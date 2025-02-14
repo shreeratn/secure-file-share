@@ -119,8 +119,6 @@ def setup_mfa(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-
-
 def verify_mfa_setup(request):
     otp = request.data.get('otp')
     user = request.user
@@ -149,3 +147,45 @@ def verify_mfa_setup(request):
         'message': 'Invalid OTP',
         'success': False
     }, status=status.HTTP_400_BAD_REQUEST)
+
+# authentications/views.py
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_users(request):
+    # Check if user is admin
+    if request.user.user_type != User.UserType.ADMIN:
+        return Response({
+            "error": "Only admin users can access this endpoint"
+        }, status=status.HTTP_403_FORBIDDEN)
+
+    users = User.objects.all().order_by('-created_at')
+    serializer = UserListSerializer(users, many=True)
+    return Response(serializer.data)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_user_role(request, user_id):
+    # Check if user is admin
+    if request.user.user_type != User.UserType.ADMIN:
+        return Response({
+            "error": "Only admin users can access this endpoint"
+        }, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({
+            "error": "User not found"
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = UserRoleUpdateSerializer(user, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({
+            "message": "User role updated successfully",
+            "user": UserListSerializer(user).data
+        })
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

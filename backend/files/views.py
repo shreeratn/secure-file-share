@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from datetime import datetime, timedelta
 import uuid
-
+from authentication.models import User  # Add this import
 from .models import File, UserStorage
 from .serializers import FileSerializer, UserStorageSerializer, FileUploadSerializer
 
