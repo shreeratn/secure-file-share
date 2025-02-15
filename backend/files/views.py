@@ -6,8 +6,9 @@ from rest_framework.response import Response
 from datetime import datetime, timedelta, timezone
 import uuid
 from authentication.models import User  # Add this import
-from .models import File, UserStorage
-from .serializers import FileSerializer, UserStorageSerializer, FileUploadSerializer
+from .models import File, UserStorage, RoleUpgradeRequest
+from .serializers import FileSerializer, UserStorageSerializer, FileUploadSerializer, RoleUpgradeRequestSerializer
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -171,3 +172,93 @@ def download_file(request, download_link):
     except File.DoesNotExist:
         return Response({'error': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
 
+
+
+# Role requests
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_role_requests(request):
+    # Only admins can view role requests
+    if request.user.user_type != User.UserType.ADMIN:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+    requests = RoleUpgradeRequest.objects.filter(status='pending')
+    serializer = RoleUpgradeRequestSerializer(requests, many=True)
+    return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def request_role_upgrade(request):
+    current_role = request.user.user_type
+
+    # Determine next role
+    if current_role == User.UserType.GUEST:
+        requested_role = User.UserType.REGULAR
+    elif current_role == User.UserType.REGULAR:
+        requested_role = User.UserType.ADMIN
+    else:
+        return Response({'error': 'Already at highest role'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check for existing pending request
+    existing_request = RoleUpgradeRequest.objects.filter(
+        user=request.user,
+        status='pending'
+    ).exists()
+
+    if existing_request:
+        return Response({'error': 'Pending request already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Create new request
+    RoleUpgradeRequest.objects.create(
+        user=request.user,
+        current_role=current_role,
+        requested_role=requested_role
+    )
+
+    return Response({'message': f'Upgrade request to {requested_role} submitted successfully'})
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def approve_role_upgrade(request, user_id):
+    if request.user.user_type != User.UserType.ADMIN:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        role_request = RoleUpgradeRequest.objects.get(
+            user_id=user_id,
+            status='pending'
+        )
+
+        # Update user's role
+        user = role_request.user
+        user.user_type = role_request.requested_role
+        user.save()
+
+        # Update request status
+        role_request.status = 'approved'
+        role_request.save()
+
+        return Response({'message': 'Role upgrade approved successfully'})
+    except RoleUpgradeRequest.DoesNotExist:
+        return Response({'error': 'Request not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def downgrade_to_guest(request, user_id):
+    if request.user.user_type != User.UserType.ADMIN:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        user = User.objects.get(id=user_id)
+        if user.user_type == User.UserType.ADMIN:
+            return Response({'error': 'Cannot downgrade admin users'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.user_type = User.UserType.GUEST
+        user.save()
+
+        # Cancel any pending upgrade requests
+        RoleUpgradeRequest.objects.filter(user=user, status='pending').update(status='rejected')
+
+        return Response({'message': 'User downgraded to guest successfully'})
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)

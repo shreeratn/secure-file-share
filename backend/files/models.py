@@ -29,3 +29,16 @@ class UserStorage(models.Model):
         elif self.user.user_type == 'regular':
             return 1 * 1024 * 1024 * 1024   # 1GB
         return 500 * 1024 * 1024            # 500MB for guest
+
+class RoleUpgradeRequest(models.Model):
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='role_requests')
+    requested_role = models.CharField(max_length=10)
+    current_role = models.CharField(max_length=10)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    request_date = models.DateTimeField(auto_now_add=True)

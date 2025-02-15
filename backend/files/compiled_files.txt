@@ -34,12 +34,25 @@ class UserStorage(models.Model):
             return 1 * 1024 * 1024 * 1024   # 1GB
         return 500 * 1024 * 1024            # 500MB for guest
 
+class RoleUpgradeRequest(models.Model):
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='role_requests')
+    requested_role = models.CharField(max_length=10)
+    current_role = models.CharField(max_length=10)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    request_date = models.DateTimeField(auto_now_add=True)
+
 
 ==================================================
 
 //filename: serializers.py
 from rest_framework import serializers
-from .models import File, UserStorage
+from .models import File, UserStorage, RoleUpgradeRequest
 from datetime import timedelta, datetime, timezone
 
 
@@ -91,6 +104,21 @@ class FileUploadSerializer(serializers.ModelSerializer):
         return file_instance
 
 
+class RoleUpgradeRequestSerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField(method_name='get_user_name')  # Specify method name
+    user_email = serializers.SerializerMethodField(method_name='get_user_email')  # Specify method name
+
+    class Meta:
+        model = RoleUpgradeRequest
+        fields = ['id', 'user_name', 'user_email', 'current_role', 'requested_role', 'status', 'request_date']
+
+    def get_user_name(self, obj):  # Must match the method_name specified above
+        return obj.user.get_full_name()
+
+    def get_user_email(self, obj):  # Must match the method_name specified above
+        return obj.user.email
+
+
 ==================================================
 
 //filename: __init__.py
@@ -139,12 +167,20 @@ urlpatterns = [
     path('upload/', views.upload_file, name='upload-file'),
     path('delete/<int:file_id>/', views.delete_file, name='delete-file'),
     path('share/<int:file_id>/', views.share_file, name='share-file'),
+    path('download/<str:download_link>/', views.download_file, name='download-file'),
+
+    #role requests
+    path('role-requests/', views.get_role_requests, name='role-requests'),
+    path('request-upgrade/', views.request_role_upgrade, name='request-upgrade'),
+    path('approve-upgrade/<int:user_id>/', views.approve_role_upgrade, name='approve-upgrade'),
+    path('downgrade-to-guest/<int:user_id>/', views.downgrade_to_guest, name='downgrade-to-guest'),
 ]
 
 
 ==================================================
 
 //filename: views.py
+from django.http import FileResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -152,8 +188,9 @@ from rest_framework.response import Response
 from datetime import datetime, timedelta, timezone
 import uuid
 from authentication.models import User  # Add this import
-from .models import File, UserStorage
-from .serializers import FileSerializer, UserStorageSerializer, FileUploadSerializer
+from .models import File, UserStorage, RoleUpgradeRequest
+from .serializers import FileSerializer, UserStorageSerializer, FileUploadSerializer, RoleUpgradeRequestSerializer
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -219,7 +256,7 @@ def upload_file(request):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Create file record
+        # Create file record
             new_file = File.objects.create(
                 name=file.name,
                 file=file,
@@ -227,13 +264,9 @@ def upload_file(request):
                 size=file.size,
                 uploaded_by=request.user,
                 status=serializer.validated_data.get('status', 'private'),
-                expiry_date=datetime.now(timezone.utc) + timedelta(days=serializer.validated_data.get('expiry_days', 7))
+                expiry_date=datetime.now(timezone.utc) + timedelta(days=serializer.validated_data.get('expiry_days', 7)),
+                download_link=str(uuid.uuid4())  # Generate download link for all files
             )
-
-            # Generate download link for public files
-            if new_file.status == 'public':
-                new_file.download_link = str(uuid.uuid4())
-                new_file.save()
 
             # Update user's storage usage
             storage.used_storage += file.size
@@ -243,6 +276,7 @@ def upload_file(request):
                 FileSerializer(new_file).data,
                 status=status.HTTP_201_CREATED
             )
+
 
         except Exception as e:
             return Response({
@@ -292,6 +326,124 @@ def share_file(request, file_id):
         return Response(FileSerializer(file).data)
     except File.DoesNotExist:
         return Response({'error': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
+
+from django.http import FileResponse
+import mimetypes
+
+@api_view(['GET'])
+def download_file(request, download_link):
+    try:
+        file = File.objects.get(download_link=download_link)
+
+        # Check expiry
+        if file.expiry_date and file.expiry_date < datetime.now(timezone.utc):
+            return Response({'error': 'File has expired'}, status=status.HTTP_410_GONE)
+
+        # Get file path and determine content type
+        file_path = file.file.path
+        content_type, _ = mimetypes.guess_type(file_path)
+        if not content_type:
+            content_type = 'application/octet-stream'
+
+        # Create response
+        response = FileResponse(open(file_path, 'rb'), content_type=content_type)
+        response['Content-Disposition'] = f'attachment; filename="{file.name}"'
+
+        return response
+
+    except File.DoesNotExist:
+        return Response({'error': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+# Role requests
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_role_requests(request):
+    # Only admins can view role requests
+    if request.user.user_type != User.UserType.ADMIN:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+    requests = RoleUpgradeRequest.objects.filter(status='pending')
+    serializer = RoleUpgradeRequestSerializer(requests, many=True)
+    return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def request_role_upgrade(request):
+    current_role = request.user.user_type
+
+    # Determine next role
+    if current_role == User.UserType.GUEST:
+        requested_role = User.UserType.REGULAR
+    elif current_role == User.UserType.REGULAR:
+        requested_role = User.UserType.ADMIN
+    else:
+        return Response({'error': 'Already at highest role'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check for existing pending request
+    existing_request = RoleUpgradeRequest.objects.filter(
+        user=request.user,
+        status='pending'
+    ).exists()
+
+    if existing_request:
+        return Response({'error': 'Pending request already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Create new request
+    RoleUpgradeRequest.objects.create(
+        user=request.user,
+        current_role=current_role,
+        requested_role=requested_role
+    )
+
+    return Response({'message': f'Upgrade request to {requested_role} submitted successfully'})
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def approve_role_upgrade(request, user_id):
+    if request.user.user_type != User.UserType.ADMIN:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        role_request = RoleUpgradeRequest.objects.get(
+            user_id=user_id,
+            status='pending'
+        )
+
+        # Update user's role
+        user = role_request.user
+        user.user_type = role_request.requested_role
+        user.save()
+
+        # Update request status
+        role_request.status = 'approved'
+        role_request.save()
+
+        return Response({'message': 'Role upgrade approved successfully'})
+    except RoleUpgradeRequest.DoesNotExist:
+        return Response({'error': 'Request not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def downgrade_to_guest(request, user_id):
+    if request.user.user_type != User.UserType.ADMIN:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        user = User.objects.get(id=user_id)
+        if user.user_type == User.UserType.ADMIN:
+            return Response({'error': 'Cannot downgrade admin users'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.user_type = User.UserType.GUEST
+        user.save()
+
+        # Cancel any pending upgrade requests
+        RoleUpgradeRequest.objects.filter(user=user, status='pending').update(status='rejected')
+
+        return Response({'message': 'User downgraded to guest successfully'})
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
 ==================================================

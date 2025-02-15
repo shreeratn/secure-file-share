@@ -284,7 +284,61 @@ export const fileService = {
             }
             throw new Error('Failed to download file');
         }
+    },
+
+    // Get role upgrade requests
+    getRoleRequests: async (): Promise<any[]> => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/role-requests/`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return response.data;
+        } catch (error: any) {
+            throw new Error('Failed to fetch role requests');
+        }
+    },
+
+    // Request role upgrade
+    requestRoleUpgrade: async (): Promise<void> => {
+        try {
+            await axios.post(`${API_BASE_URL}/request-upgrade/`, null, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+        } catch (error: any) {
+            throw new Error('Failed to request role upgrade');
+        }
+    },
+
+    // Approve role upgrade
+    approveRoleUpgrade: async (userId: number, role: 'regular' | 'admin'): Promise<void> => {
+        try {
+            await axios.post(`${API_BASE_URL}/approve-upgrade/${userId}/`, { role }, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+        } catch (error: any) {
+            throw new Error('Failed to approve role upgrade');
+        }
+    },
+
+    // Downgrade user to guest
+    downgradeToGuest: async (userId: number): Promise<void> => {
+        try {
+            await axios.post(`${API_BASE_URL}/downgrade-to-guest/${userId}/`, null, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+        } catch (error: any) {
+            throw new Error('Failed to downgrade user');
+        }
     }
+
 
 
 

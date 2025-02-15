@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import File, UserStorage
+from .models import File, UserStorage, RoleUpgradeRequest
 from datetime import timedelta, datetime, timezone
 
 
@@ -50,3 +50,21 @@ class FileUploadSerializer(serializers.ModelSerializer):
 
         return file_instance
 
+
+class RoleUpgradeRequestSerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField(method_name='get_user_name')
+    user_email = serializers.SerializerMethodField(method_name='get_user_email')
+    user_id = serializers.SerializerMethodField(method_name='get_user_id')
+
+    class Meta:
+        model = RoleUpgradeRequest
+        fields = ['id', 'user_id', 'user_name', 'user_email', 'current_role', 'requested_role', 'status', 'request_date']
+
+    def get_user_name(self, obj):
+        return obj.user.get_full_name()
+
+    def get_user_email(self, obj):
+        return obj.user.email
+
+    def get_user_id(self, obj):
+        return obj.user.id

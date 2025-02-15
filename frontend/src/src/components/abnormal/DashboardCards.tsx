@@ -9,6 +9,9 @@ import { CardFooter } from "../ui/card"
 import {HyperText} from "../magicui/hyper-text.tsx";
 import {MFAPendingDrawer} from "./people/PeopleMFAPending.tsx";
 import UploadFile from "./UploadFile.tsx";
+import {RoleApprovalDrawer} from "./people/RoleApprovalDrawer.tsx";
+import {fileService} from "@/services/files.ts";
+import {useToast} from "@/hooks/use-toast.ts";
 
 // Chart configuration
 const storageChartConfig = {
@@ -87,12 +90,34 @@ export function DashboardCards({data, onRefresh}: {
     }), [data.usedStorageGB])
 
     const [peopleDrawerOpen, setPeopleDrawerOpen] = useState(false)
+    const [roleDrawerOpen, setRoleDrawerOpen] = useState(false)
 
     const roleColors = {
         Guest: 'text-gray-500',
         Regular: 'text-blue-500',
         Admin: 'text-emerald-500',
     }
+
+    const { toast } = useToast();
+
+    const handleRequestUpgrade = async () => {
+        try {
+            // TODO: Add API endpoint in fileService
+            await fileService.requestRoleUpgrade();
+            toast({
+                title: "Success",
+                description: data.userRole === 'Guest'
+                    ? "Request to upgrade to Regular user sent successfully"
+                    : "Request to upgrade to Admin sent successfully"
+            });
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message || "Failed to request upgrade"
+            });
+        }
+    };
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -302,6 +327,49 @@ export function DashboardCards({data, onRefresh}: {
                     </CardContent>
                 )}
             </Card>
+
+            {/* Role Upgrade Card */}
+            <Card className="min-w-[150px]">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Role Management</CardTitle>
+                    <UserCheckIcon className="h-4 w-4 text-indigo-500"/>
+                </CardHeader>
+                <CardContent>
+                    {data.userRole === 'Admin' ? (
+                        <Button
+                            onClick={() => setRoleDrawerOpen(true)}
+                            className="w-full"
+                            variant="outline"
+                        >
+                            Check Approval Requests
+                        </Button>
+                    ) : (
+                        <Button
+                            onClick={() => handleRequestUpgrade()}
+                            className="w-full"
+                        >
+                            Request Upgrade to {data.userRole === 'Guest' ? 'Regular' : 'Admin'}
+                        </Button>
+                    )}
+                </CardContent>
+                <CardFooter className="text-xs text-muted-foreground">
+                    {data.userRole !== 'Admin' && (
+                        <>
+                            {data.userRole === 'Guest'
+                                ? "Upgrade to Regular user for more features"
+                                : "Request Admin privileges for full control"}
+                        </>
+                    )}
+                </CardFooter>
+            </Card>
+
+            {roleDrawerOpen && (
+                <RoleApprovalDrawer
+                    isOpen={roleDrawerOpen}
+                    onClose={() => setRoleDrawerOpen(false)}
+                />
+            )}
+
 
             {/*People drawer for pending MFA*/}
             {peopleDrawerOpen && (
