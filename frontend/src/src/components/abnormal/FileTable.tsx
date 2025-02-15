@@ -31,10 +31,12 @@ import {
     Lock,
     MoreVertical,
     Trash2,
+    Loader2,
 } from "lucide-react"
 import {Tabs, TabsList, TabsTrigger} from "@/components/ui/tabs"
 import { ShareDrawer } from "./ShareDrawer.tsx"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
+import { fileService } from "@/services/files.ts"
 
 export interface File {
     expiry_date: string;
@@ -117,30 +119,38 @@ export const columns: ColumnDef<File>[] = [
     {
         id: "actions",
         cell: ({ row }) => (
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                        <MoreVertical className="h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => console.log('Download', row.original)}>
-                        Download
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => {
-                        setSelectedFile(row.original)
-                        setShareDrawerOpen(true)
-                    }}>
-                        Share
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                        onClick={() => console.log('Delete', row.original)}
-                        className="text-red-500"
-                    >
-                        Delete
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+            <>
+                {isDeleting ? (
+                    <div className="flex items-center justify-center">
+                        <Loader2 className="h-4 w-4 animate-spin"/>
+                    </div>
+                ) : (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => console.log('Download', row.original)}>
+                                Download
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                                setSelectedFile(row.original)
+                                setShareDrawerOpen(true)
+                            }}>
+                                Share
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => handleDelete(row.original.id)}
+                                className="text-red-500"
+                            >
+                                Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
+            </>
         ),
     },
 ]
@@ -200,6 +210,8 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
     const [rowSelection, setRowSelection] = useState({})
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [shareDrawerOpen, setShareDrawerOpen] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false);
+    const { toast } = useToast();
 
     const columns: ColumnDef<File>[] = [
         {
@@ -277,32 +289,40 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
         {
             id: "actions",
             cell: ({ row }) => (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => console.log('Download', row.original)}>
-                            Download
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => {
-                            setSelectedFile(row.original)
-                            setShareDrawerOpen(true)
-                        }}>
-                            Share
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            onClick={() => console.log('Delete', row.original)}
-                            className="text-red-500"
-                        >
-                            Delete
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <>
+                    {isDeleting ? (
+                        <div className="flex items-center justify-center">
+                            <Loader2 className="h-4 w-4 animate-spin"/>
+                        </div>
+                    ) : (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <MoreVertical className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => console.log('Download', row.original)}>
+                                    Download
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                    setSelectedFile(row.original)
+                                    setShareDrawerOpen(true)
+                                }}>
+                                    Share
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => handleDelete(row.original.id)}
+                                    className="text-red-500"
+                                >
+                                    Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
+                </>
             ),
-        },
+        }
     ]
 
     const table = useReactTable({
@@ -314,6 +334,26 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
             rowSelection,
         },
     })
+
+    const handleDelete = async (fileId: string) => {
+        setIsDeleting(true);
+        try {
+            await fileService.deleteFile(fileId);
+            toast({
+                title: "Success",
+                description: "File deleted successfully",
+            });
+            window.location.reload(); // Refresh the page
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message || "Failed to delete file",
+            });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     return (
         <div className="rounded-md border mt-4 flex flex-col h-[calc(100vh-540px)]">
