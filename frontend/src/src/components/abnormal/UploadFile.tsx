@@ -4,7 +4,7 @@ import {useToast} from "@/hooks/use-toast";
 import {fileService} from "@/services/files.ts";
 import {Loader2} from "lucide-react"; // Add this import
 
-const UploadFile: React.FC = () => {
+const UploadFile: React.FC<{ onSuccess?: () => Promise<void> }> = ({ onSuccess }) => {
     const [file, setFile] = useState<File | null>(null);
     const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
     const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -35,14 +35,12 @@ const UploadFile: React.FC = () => {
 
         setIsUploading(true);
         try {
-            // First upload the file
             const uploadedFile = await fileService.uploadFile({
                 file,
                 status,
                 expiry_days: status === 'public' ? expiryDays : undefined
             });
 
-            // If public and emails provided, share with those users
             if (status === 'public' && emails.length > 0) {
                 await fileService.shareFile(uploadedFile.id, { emails });
             }
@@ -52,11 +50,10 @@ const UploadFile: React.FC = () => {
                 description: "File uploaded successfully!",
             });
 
-            handleCancel(); // Reset and close drawer
-            setIsRefreshing(true);
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
+            handleCancel();
+            if (onSuccess) {
+                await onSuccess(); // Call the refresh function
+            }
         } catch (error: any) {
             toast({
                 variant: "destructive",

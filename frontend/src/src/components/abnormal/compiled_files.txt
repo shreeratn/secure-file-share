@@ -1,0 +1,1925 @@
+//filepath: ShareDrawer.tsx
+//content:
+// components/share-drawer.tsx
+"use client"
+
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
+import { Copy, Link2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+
+interface ShareDrawerProps {
+    file: File
+    open: boolean
+    onClose: () => void
+}
+
+export function ShareDrawer({ file, open, onClose }: ShareDrawerProps) {
+    const { toast } = useToast()
+    const [days, setDays] = useState(7)
+    const [error, setError] = useState<string | null>(null)
+    const [isSettingsSaved, setIsSettingsSaved] = useState(false)
+    const [shareLink, setShareLink] = useState("")
+
+    const handleDaysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = parseInt(e.target.value)
+        setDays(value)
+        setError(null)
+    }
+
+    const handleSave = () => {
+        if (days > 30) {
+            setError("Expiration days cannot exceed 30")
+            return
+        }
+        if (days < 1) {
+            setError("Expiration days must be at least 1")
+            return
+        }
+
+        setShareLink(`https://your-app.com/share/${crypto.randomUUID()}?expires_in=${days}`)
+        setIsSettingsSaved(true)
+        setError(null)
+    }
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(shareLink)
+        toast({
+            title: "Link copied!",
+            description: "Share link has been copied to clipboard",
+        })
+    }
+
+    useEffect(() => {
+        if (!open) {
+            // Reset state when drawer closes
+            setDays(7)
+            setError(null)
+            setIsSettingsSaved(false)
+            setShareLink("")
+        }
+    }, [open])
+
+    return (
+        <Drawer open={open} onOpenChange={onClose}>
+            <DrawerContent className="h-[40vh]">
+                <div className="mx-auto w-full max-w-sm p-6">
+                    <DrawerHeader>
+                        <DrawerTitle className="flex items-center gap-2">
+                            <Link2 className="h-5 w-5" />
+                            Share File
+                        </DrawerTitle>
+                    </DrawerHeader>
+
+                    {!file.isShared && (
+                        <div className="space-y-4">
+                            {!isSettingsSaved ? (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">
+                                        Set Expiration Days
+                                        <span className="text-muted-foreground ml-1">(max 30)</span>
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            type="number"
+                                            min="1"
+                                            max="30"
+                                            value={days}
+                                            onChange={handleDaysChange}
+                                            className="w-24"
+                                        />
+                                        <Button onClick={handleSave}>
+                                            Save
+                                        </Button>
+                                    </div>
+                                    {error && <p className="text-sm text-red-500">{error}</p>}
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            value={shareLink}
+                                            readOnly
+                                            className="truncate max-w-[300px]"
+                                        />
+                                        <Button size="sm" onClick={handleCopy}>
+                                            <Copy className="h-4 w-4 mr-2" />
+                                            Copy
+                                        </Button>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        This link will expire after {days} day{days !== 1 ? 's' : ''}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {file.isShared && (
+                        <div className="space-y-2 mt-4">
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    value={shareLink}
+                                    readOnly
+                                    className="truncate max-w-[300px]"
+                                />
+                                <Button size="sm" onClick={handleCopy}>
+                                    <Copy className="h-4 w-4 mr-2" />
+                                    Copy
+                                </Button>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                This file is already shared publicly
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </DrawerContent>
+        </Drawer>
+    )
+}
+
+
+==================================================
+
+//filepath: Login.tsx
+//content:
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useForm } from "react-hook-form"
+import {useToast} from "../../hooks/use-toast.ts";
+import { useNavigate } from "react-router-dom"
+import { authService } from "@/services/auth"
+import { MFASetupDialog } from "./mfa/MFASetupDialog.tsx"
+import { MFAVerifyDialog } from "./mfa/MFAVerifyDialogProps.tsx"
+
+
+
+export function Login() {
+    const [activeTab, setActiveTab] = useState("login")
+
+    // Separate forms for login and registration
+    const loginForm = useForm()
+    const regForm = useForm()
+
+    const navigate = useNavigate();
+    const { toast } = useToast();
+
+    const [showMFAVerifyDialog, setShowMFAVerifyDialog] = useState(false);
+    const [loginData, setLoginData] = useState<any>(null);
+
+    const [showMFADialog, setShowMFADialog] = useState(false)
+
+    const [passwordValid, setPasswordValid] = useState({
+        length: false,
+        uppercase: false,
+        specialChar: false,
+        digit: false,
+    })
+
+    // Handle tab change with form resets
+    const handleTabChange = (value: string) => {
+        setActiveTab(value)
+        loginForm.reset()
+        regForm.reset()
+        setPasswordValid({
+            length: false,
+            uppercase: false,
+            specialChar: false,
+            digit: false,
+        })
+    }
+
+    const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+        setPasswordValid({
+            length: value.length >= 6 && value.length <= 18,
+            uppercase: /[A-Z]/.test(value),
+            specialChar: /[!@#$%^&*(),.?":{}|<>]/.test(value),
+            digit: /\d/.test(value),
+        })
+        regForm.setValue("regPassword", value) // Update form value
+    }
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            navigate('/dashboard');
+        }
+    }, [navigate]);
+
+    const handleLoginSubmit = async (data: any) => {
+        try {
+            const response = await authService.login(data.username, data.password);
+
+            if (response.isMFAenabled) {
+                // Store login data temporarily
+                setLoginData(response);
+                // Show MFA verification dialog
+                setShowMFAVerifyDialog(true);
+            } else {
+                // Complete login for non-MFA users
+                completeLogin(response);
+            }
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: error.message
+            });
+        }
+    }
+
+    const completeLogin = (response: any) => {
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('refreshToken', response.refresh_token);
+        localStorage.setItem('isMFAenabled', response.isMFAenabled.toString());
+        navigate('/dashboard');
+    }
+
+    const handleMFASuccess = () => {
+        setShowMFAVerifyDialog(false);
+        if (loginData) {
+            completeLogin(loginData);
+        }
+    }
+
+
+    const handleRegSubmit = async (data: any) => {
+        try {
+            await authService.register(data.name, data.email, data.regPassword);
+            toast({
+                title: "Registration Successful",
+                description: "Please complete the MFA Setup as well"
+            });
+            const loginResponse = await authService.login(data.email, data.regPassword);
+            localStorage.setItem('token', loginResponse.token);
+            localStorage.setItem('refreshToken', loginResponse.refresh_token);
+            localStorage.setItem('isMFAenabled', loginResponse.isMFAenabled.toString());
+            setShowMFADialog(true);
+        } catch (error: any) {
+            if (error.response && error.response.data && error.response.data.email) {
+                toast({
+                    variant: "destructive",
+                    title: "Registration Failed",
+                    description: error.response.data.email[0]
+                });
+            } else {
+                console.log(error, data)
+                toast({
+                    variant: "destructive",
+                    title: "Registration Failed",
+                    description: error.message
+                });
+            }
+        }
+    }
+
+    return (
+        <Tabs
+            defaultValue="login"
+            className="w-[400px]"
+            onValueChange={handleTabChange}
+        >
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="registration">Registration</TabsTrigger>
+            </TabsList>
+
+            {/* Login Tab */}
+            <TabsContent value="login" className="h-[500px] transition-all duration-300">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Login</CardTitle>
+                        <CardDescription>Enter your username and password to login.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        <form onSubmit={loginForm.handleSubmit(handleLoginSubmit)} className="space-y-2">
+                            <div className="space-y-1">
+                                <Label htmlFor="username">Username</Label>
+                                <Input
+                                    id="username"
+                                    {...loginForm.register("username", { required: "Username is required" })}
+                                />
+                                {loginForm.formState.errors.username && (
+                                    <p className="text-red-500">{loginForm.formState.errors.username.message as string}</p>
+                                )}
+                            </div>
+                            <div className="space-y-1">
+                                <Label htmlFor="password">Password</Label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    {...loginForm.register("password", { required: "Password is required" })}
+                                />
+                                {loginForm.formState.errors.password && (
+                                    <p className="text-red-500">{loginForm.formState.errors.password.message as string}</p>
+                                )}
+                            </div>
+                            <CardFooter className="flex flex-row-reverse pr-0">
+                                <Button type="submit">Login</Button>
+                            </CardFooter>
+                        </form>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            {/* Registration Tab */}
+            <TabsContent value="registration" className="h-[500px] transition-all duration-300">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Registration</CardTitle>
+                        <CardDescription>Fill in the details to register a new account.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        <form onSubmit={regForm.handleSubmit(handleRegSubmit)} className="space-y-2">
+                            <div className="space-y-1">
+                                <Label htmlFor="name">Name</Label>
+                                <Input
+                                    id="name"
+                                    {...regForm.register("name", { required: "Name is required" })}
+                                />
+                                {regForm.formState.errors.name && (
+                                    <p className="text-red-500">{regForm.formState.errors.name.message as string}</p>
+                                )}
+                            </div>
+                            <div className="space-y-1">
+                                <Label htmlFor="email">Email</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    {...regForm.register("email", { required: "Email is required" })}
+                                />
+                                {regForm.formState.errors.email && (
+                                    <p className="text-red-500">{regForm.formState.errors.email.message as string}</p>
+                                )}
+                            </div>
+                            <div className="space-y-1">
+                                <Label htmlFor="reg-password">Password</Label>
+                                <Input
+                                    id="reg-password"
+                                    type="password"
+                                    {...regForm.register("regPassword", {
+                                        required: "Password is required",
+                                        minLength: { value: 6, message: "Password must be at least 6 characters" },
+                                        maxLength: { value: 18, message: "Password must be at most 18 characters" },
+                                    })}
+                                    onChange={handlePasswordChange}
+                                />
+                                {regForm.formState.errors.regPassword && (
+                                    <p className="text-red-500">{regForm.formState.errors.regPassword.message as string}</p>
+                                )}
+                                <div className="text-gray-500">
+                                    <p className={passwordValid.length ? "text-green-500" : "text-red-500"}>6-18 characters</p>
+                                    <p className={passwordValid.uppercase ? "text-green-500" : "text-red-500"}>One uppercase letter</p>
+                                    <p className={passwordValid.specialChar ? "text-green-500" : "text-red-500"}>One special character</p>
+                                    <p className={passwordValid.digit ? "text-green-500" : "text-red-500"}>One digit</p>
+                                </div>
+                            </div>
+                            <CardFooter className="flex flex-row-reverse pr-0">
+                                <Button type="submit">Register</Button>
+                            </CardFooter>
+                        </form>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <MFASetupDialog
+                isOpen={showMFADialog}
+                onClose={() => setShowMFADialog(false)}
+            />
+            <MFAVerifyDialog
+                isOpen={showMFAVerifyDialog}
+                onClose={() => setShowMFAVerifyDialog(false)}
+                onSuccess={handleMFASuccess}
+            />
+        </Tabs>
+    )
+}
+
+
+==================================================
+
+//filepath: Dashboard.tsx
+//content:
+// app/dashboard/page.tsx
+import { FileTable } from "./FileTable"
+import { DashboardCards, DashboardData } from "./DashboardCards"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import {AuroraText} from "../magicui/aurora-text.tsx";
+import { useNavigate } from 'react-router-dom';
+import {authService} from "../../services/auth.ts";
+import {MFADrawer} from "./mfa/MFADrawer.tsx";
+import {useState} from "react";
+import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
+import { fileService } from "@/services/files";
+
+
+interface FileData {
+    id: string;
+    name: string;
+    size: string;
+    extension: string;
+    status: string;
+    expiry?: string;
+    uploadedAt?: string;
+    sharedBy?: string;
+    sharedAt?: string;
+    downloadLink?: string;
+}
+
+export default function DashboardPage() {
+    const navigate = useNavigate();
+    const [isMFADrawerOpen, setIsMFADrawerOpen] = useState(false);
+    const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [ownedFiles, setOwnedFiles] = useState<FileData[]>([]);
+    const [sharedFiles, setSharedFiles] = useState<FileData[]>([]);
+
+    const isMFAenabled = localStorage.getItem('isMFAenabled') === 'true';
+
+    useEffect(() => {
+        const fetchAllData = async () => {
+            try {
+                const [dashboardData, uploadedFiles, sharedFilesData] = await Promise.all([
+                    fileService.getDashboardData(),
+                    fileService.getUploadedFiles(),
+                    fileService.getSharedFiles()
+                ]);
+
+                setDashboardData(dashboardData);
+                setOwnedFiles(uploadedFiles);
+                setSharedFiles(sharedFilesData);
+            } catch (error) {
+                console.error('Failed to fetch data:', error);
+                navigate('/login');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchAllData();
+    }, [navigate]);
+
+    const handleLogout = async () => {
+        try {
+            await authService.logout();
+            navigate('/login');
+        } catch (error) {
+            console.error('Logout failed:', error);
+            navigate('/login');
+        }
+    };
+
+    const handleMFAClick = () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+        setIsMFADrawerOpen(true);
+    }
+
+    if (isLoading) {
+        return (
+            <div className="h-screen w-screen flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+                    <p className="text-sm text-muted-foreground">Loading your secure workspace...</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex-col md:flex">
+            <div className="flex-1 space-y-4 p-8 pt-6">
+                <Card className="w-full mb-4">
+                    <CardContent className="flex justify-between items-center p-3">
+                        <h1 className="text-3xl font-bold tracking-tighter">
+                            Secure File Share by <AuroraText>Shree Ratn</AuroraText>
+                        </h1>
+                        <div className="flex gap-4">
+                            {!isMFAenabled && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => handleMFAClick()}
+                                >
+                                    Complete MFA
+                                </Button>
+                            )}
+                            <Button variant="destructive" onClick={handleLogout}>
+                                Logout
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {dashboardData && <DashboardCards data={dashboardData} />}
+                <FileTable
+                    userRole={dashboardData?.userRole || 'Guest'}
+                    ownedFiles={ownedFiles}
+                    sharedFiles={sharedFiles}
+                />
+
+                {isMFADrawerOpen && (<MFADrawer
+                    isOpen={isMFADrawerOpen}
+                    onClose={() => setIsMFADrawerOpen(false)}
+                />)}
+            </div>
+        </div>
+    );
+}
+
+
+
+==================================================
+
+//filepath: FileTable.tsx
+//content:
+// components/file-table.tsx
+"use client"
+
+import {useState} from "react"
+import {ColumnDef, flexRender, getCoreRowModel, useReactTable,} from "@tanstack/react-table"
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table"
+import {Button} from "@/components/ui/button"
+import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu"
+import {Badge} from "@/components/ui/badge"
+import {Checkbox} from "@/components/ui/checkbox"
+import {Download, Loader2, Lock, MoreVertical, Share2, Trash2,} from "lucide-react"
+import {Tabs, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import {ShareDrawer} from "./ShareDrawer"
+import {useToast} from "@/hooks/use-toast"
+import {fileService} from "@/services/files"
+
+export interface File {
+    uploaded_by?: {
+        name?: string
+    }
+    expiry_date: string;
+    id: string
+    name: string
+    size: any
+    extension: string
+    isShared: boolean
+    expiry?: string
+    sharedBy?: string
+    uploadedAt?: Date
+    sharedAt?: Date
+    uploaded_date?: string
+    status?: string,
+    download_link: string
+}
+
+interface FileTableProps {
+    userRole: 'Guest' | 'Regular' | 'Admin'
+    ownedFiles: any
+    sharedFiles: any
+}
+
+export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
+    const [activeTab, setActiveTab] = useState<'owned' | 'shared'>(userRole === 'Guest' ? 'shared' : 'owned')
+    const [rowSelection, setRowSelection] = useState({})
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    const [shareDrawerOpen, setShareDrawerOpen] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false);
+    const {toast} = useToast();
+
+    const handleDownload = async (downloadLink: string, downloadName: string) => {
+        try {
+            await fileService.downloadFile(downloadLink, downloadName);
+            toast({
+                title: "Success",
+                description: "File downloaded successfully",
+            });
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message || "Failed to download file",
+            });
+        }
+    };
+
+    const handleDelete = async (fileId: string) => {
+        setIsDeleting(true);
+        try {
+            await fileService.deleteFile(fileId);
+            toast({
+                title: "Success",
+                description: "File deleted successfully",
+            });
+            window.location.reload();
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message || "Failed to delete file",
+            });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    function formatFileSize(size: number): string {
+        if (size >= 1024 * 1024 * 300) {
+            return (size / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+        } else {
+            return (size / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+    }
+
+    const columns: ColumnDef<File>[] = [
+        {
+            id: "select",
+            header: ({table}) => (
+                <Checkbox
+                    checked={table.getIsAllPageRowsSelected()}
+                    onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                    aria-label="Select all"
+                />
+            ),
+            cell: ({row}) => (
+                <Checkbox
+                    checked={row.getIsSelected()}
+                    onCheckedChange={(value) => row.toggleSelected(!!value)}
+                    aria-label="Select row"
+                />
+            ),
+        },
+        {
+            accessorKey: "name",
+            header: "File Name",
+            cell: ({row}) => (
+                <div className="truncate max-w-xs" title={row.getValue("name")}>
+                    {row.getValue("name")}
+                </div>
+            ),
+        },
+        {
+            accessorKey: "size",
+            header: "Size",
+            cell: ({row}) => formatFileSize(row.getValue("size")),
+        },
+        {
+            accessorKey: "extension",
+            header: "Type",
+            cell: ({row}) => (
+                <Badge variant="outline">{row.getValue("extension").toUpperCase()}</Badge>
+            ),
+        },
+        {
+            accessorKey: "isShared",
+            header: "Status",
+            cell: ({row}) => row.original.status === 'public' ? (
+                <div className="flex items-center gap-2">
+                    <Share2 className="h-4 w-4 text-green-500"/>
+                    <span>Shared</span>
+                </div>
+            ) : (
+                <div className="flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-red-500"/>
+                    <span>Private</span>
+                </div>
+            ),
+        },
+        {
+            accessorKey: "expiry",
+            header: "Expires In",
+            cell: ({row}) => {
+                const expiryDate = row.original.expiry_date;
+                if (!expiryDate) return "-";
+                const now = new Date();
+                const expiry = new Date(expiryDate);
+                const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                return `${diffDays} days`;
+            }
+        },
+        {
+            accessorKey: "uploadedAt",
+            header: "Upload Date",
+            cell: ({row}) => {
+                const date = row.original["uploaded_date"];
+                return date ? new Date(date).toLocaleDateString() : "-";
+            }
+        },
+        {
+            id: "actions",
+            cell: ({row}) => (
+                <>
+                    {isDeleting ? (
+                        <div className="flex items-center justify-center">
+                            <Loader2 className="h-4 w-4 animate-spin"/>
+                        </div>
+                    ) : (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <MoreVertical className="h-4 w-4"/>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleDownload(row.original.download_link, row.original.name.split('.').slice(0, -1).join('.'))}>
+                                    Download
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                    setSelectedFile(row.original)
+                                    setShareDrawerOpen(true)
+                                }}>
+                                    Share
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => handleDelete(row.original.id)}
+                                    className="text-red-500"
+                                >
+                                    Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
+                </>
+            ),
+        }
+    ];
+
+    const sharedColumns: ColumnDef<File>[] = [
+        {
+            accessorKey: "name",
+            header: "File Name",
+            cell: ({row}) => (
+                <div className="truncate max-w-xs" title={row.getValue("name")}>
+                    {row.getValue("name")}
+                </div>
+            ),
+        },
+        {
+            accessorKey: "size",
+            header: "Size",
+            cell: ({row}) => formatFileSize(row.getValue("size")),
+        },
+        {
+            accessorKey: "extension",
+            header: "Type",
+            cell: ({row}) => (
+                <Badge variant="outline">{row.getValue("extension").toUpperCase()}</Badge>
+            ),
+        },
+        {
+            accessorKey: "sharedBy",
+            header: "Shared By",
+            cell: ({row}) => row.original.uploaded_by?.name,
+        },
+        {
+            accessorKey: "sharedAt",
+            header: "Shared Date",
+            cell: ({row}) => row.original.uploaded_date ?
+                new Date(row.original.uploaded_date).toLocaleDateString() : "-",
+        },
+        {
+            accessorKey: "expiry",
+            header: "Expires In",
+            cell: ({row}) => {
+                const expiryDate = row.original.expiry_date;
+                if (!expiryDate) return "-";
+                const now = new Date();
+                const expiry = new Date(expiryDate);
+                const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                return `${diffDays} days`;
+            }
+        },
+        {
+            id: "download",
+            cell: ({row}) => (
+                <Button variant="ghost" size="sm"
+                        onClick={() => handleDownload(row.original.download_link, row.original.name.split('.').slice(0, -1).join('.'))}
+                >
+                    <Download className="h-4 w-4 mr-2"/>
+                    Download
+                </Button>
+            ),
+        },
+    ];
+
+    const table = useReactTable({
+        data: activeTab === 'owned' ? ownedFiles : sharedFiles,
+        columns: activeTab === 'owned' ? columns : sharedColumns,
+        getCoreRowModel: getCoreRowModel(),
+        onRowSelectionChange: setRowSelection,
+        state: {
+            rowSelection,
+        },
+    })
+
+    return (
+        <div className="rounded-md border mt-4 flex flex-col h-[calc(100vh-540px)]">
+            <div className="flex items-center justify-between p-4 border-b">
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'owned' | 'shared')}>
+                    <TabsList>
+                        {userRole !== 'Guest' && (
+                            <TabsTrigger value="owned">
+                                Your Files ({ownedFiles.length})
+                            </TabsTrigger>
+                        )}
+                        <TabsTrigger value="shared">
+                            Shared with You ({sharedFiles.length})
+                        </TabsTrigger>
+                    </TabsList>
+                </Tabs>
+                <div className="flex items-center gap-4">
+                    {activeTab === 'owned' && table.getSelectedRowModel().rows.length > 0 && (
+                        <Button
+                            variant="ghost"
+                            onClick={() => console.log('Delete selected', table.getSelectedRowModel().rows)}
+                            className="text-red-500 ml-auto"
+                        >
+                            <Trash2 className="h-4 w-4 mr-2"/>
+                            Delete Selected ({table.getSelectedRowModel().rows.length})
+                        </Button>
+                    )}
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-auto">
+                <Table>
+                    <TableHeader className="sticky top-0 bg-background">
+                        {table.getHeaderGroups().map((headerGroup) => (
+                            <TableRow key={headerGroup.id}>
+                                {headerGroup.headers.map((header) => (
+                                    <TableHead key={header.id}>
+                                        {header.isPlaceholder
+                                            ? null
+                                            : flexRender(
+                                                header.column.columnDef.header,
+                                                header.getContext()
+                                            )}
+                                    </TableHead>
+                                ))}
+                            </TableRow>
+                        ))}
+                    </TableHeader>
+                    <TableBody>
+                        {table.getRowModel().rows?.length ? (
+                            table.getRowModel().rows.map((row) => (
+                                <TableRow
+                                    key={row.id}
+                                    data-state={row.getIsSelected() && "selected"}
+                                >
+                                    {row.getVisibleCells().map((cell) => (
+                                        <TableCell key={cell.id}>
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={columns.length} className="h-24 text-center">
+                                    No files found.
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+
+            {selectedFile && (
+                <ShareDrawer
+                    file={selectedFile}
+                    open={shareDrawerOpen}
+                    onClose={() => {
+                        setShareDrawerOpen(false)
+                        setSelectedFile(null)
+                    }}
+                />
+            )}
+        </div>
+    )
+}
+
+
+==================================================
+
+//filepath: DashboardCards.tsx
+//content:
+import {useMemo, useState} from "react"
+import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card"
+import {AlertTriangleIcon, DatabaseIcon, LinkIcon, Share2Icon, ShieldCheckIcon, UserCheckIcon, LockIcon} from "lucide-react"
+import {Cell, Pie, PieChart} from "recharts"
+import {ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent} from "@/components/ui/chart"
+import {Progress} from "@/components/ui/progress"
+import {Button} from "@/components/ui/button"
+import { CardFooter } from "../ui/card"
+import {HyperText} from "../magicui/hyper-text.tsx";
+import {MFAPendingDrawer} from "./people/PeopleMFAPending.tsx";
+import UploadFile from "./UploadFile.tsx";
+
+// Chart configuration
+const storageChartConfig = {
+    used: {
+        label: "Used",
+        color: "#0284c7", // Tailwind blue-600
+    },
+    free: {
+        label: "Free",
+        color: "#f3f4f6", // Tailwind gray-100
+    },
+} satisfies ChartConfig
+
+export interface DashboardData {
+    totalFiles: number
+    usedStorageGB: number
+    activeLinks: number
+    userRole: 'Guest' | 'Regular' | 'Admin'
+    encryptionPercent: number
+    sharedLinks: {
+        total: number
+        viewOnly: number
+        downloadable: number
+    }
+    accessControl: {
+        pendingRequests: number
+        restrictedFilesPercent: number
+        adminOverrides: number
+    }
+    securityAlerts: {
+        failedDecryptAttempts: number
+        pendingMFASetups: number
+    }
+    userRoles: {
+        admins: number
+        regularUsers: number
+        guests: number
+    }
+}
+
+const STORAGE_LIMIT_GB = 1
+
+const LOCKED_CARD_CLASS = "min-w-[150px] border-2 border-yellow-200 shadow-sm shadow-yellow-600/100 relative"
+
+const LockedContent = () => (
+    <>
+        <CardContent className="flex items-center">
+            <HyperText className="text-2xl font-bold text-red-600">Locked!</HyperText>
+        </CardContent>
+        <CardFooter className="text-xs text-muted-foreground">
+            Contact your Admin to upgrade to Regular user to view analytics
+        </CardFooter>
+    </>
+)
+
+const formatStorage = (valueGB: number) => {
+    if (valueGB >= 1) {
+        return `${valueGB.toFixed(3)}GB`
+    }
+    const valueMB = valueGB * 1000
+    return `${Math.round(valueMB)}MB`
+}
+
+export function DashboardCards({data}: { data: DashboardData }) {
+    const storageData = useMemo(() => [
+        {category: "used", value: data.usedStorageGB},
+        {category: "free", value: STORAGE_LIMIT_GB - data.usedStorageGB},
+    ], [data.usedStorageGB])
+
+    const storageText = useMemo(() => ({
+        free: formatStorage(STORAGE_LIMIT_GB - data.usedStorageGB),
+        used: formatStorage(data.usedStorageGB),
+    }), [data.usedStorageGB])
+
+    const [peopleDrawerOpen, setPeopleDrawerOpen] = useState(false)
+
+    const roleColors = {
+        Guest: 'text-gray-500',
+        Regular: 'text-blue-500',
+        Admin: 'text-emerald-500',
+    }
+
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Files Shared Card */}
+            <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : "min-w-[150px]"}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Files Shared</CardTitle>
+                    {data.userRole === 'Guest' ? (
+                        <LockIcon className="h-4 w-4 text-red-500"/>
+                    ) : (
+                        <Share2Icon className="h-4 w-4 text-blue-500"/>
+                    )}
+                </CardHeader>
+                {data.userRole === 'Guest' ? (
+                    <LockedContent/>
+                ) : (
+                    <CardContent>
+                        <div className="text-2xl font-bold">{data.totalFiles}</div>
+                        <p className="text-xs text-muted-foreground">
+                            files shared till date
+                        </p>
+                    </CardContent>
+                )}
+            </Card>
+
+            {/* Storage Card */}
+            <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : "min-w-[150px]"}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Storage</CardTitle>
+                    {data.userRole === 'Guest' ? (
+                        <LockIcon className="h-4 w-4 text-red-500"/>
+                    ) : (
+                        <DatabaseIcon className="h-4 w-4 text-green-500"/>
+                    )}
+                </CardHeader>
+                {data.userRole === 'Guest' ? (
+                    <LockedContent/>
+                ) : (
+                    <CardContent className="flex items-center justify-between">
+                        {/* Left Text Section */}
+                        <div className="space-y-1">
+                            <div className="text-2xl font-bold">
+                                {storageText.free}
+                                <span className="text-sm text-muted-foreground"> / {STORAGE_LIMIT_GB}GB</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                Used: {storageText.used}
+                            </p>
+                        </div>
+
+                        {/* Pie Chart */}
+                        <div className="h-[70px] w-[70px] -mr-3">
+                            <ChartContainer
+                                config={storageChartConfig}
+                                className="aspect-square h-full w-full"
+                            >
+                                <PieChart>
+                                    <ChartTooltip
+                                        cursor={false}
+                                        content={<ChartTooltipContent hideLabel/>}
+                                    />
+                                    <Pie
+                                        data={storageData}
+                                        dataKey="value"
+                                        nameKey="category"
+                                        cx="50%"
+                                        cy="50%"
+                                        outerRadius={30}
+                                        paddingAngle={0}
+                                    >
+                                        {storageData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={storageChartConfig[entry.category].color}/>
+                                        ))}
+                                    </Pie>
+                                </PieChart>
+                            </ChartContainer>
+                        </div>
+                    </CardContent>
+                )}
+            </Card>
+
+
+            {/* Current Role Card */}
+            <Card className="min-w-[150px]">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Current Role</CardTitle>
+                    <UserCheckIcon className="h-4 w-4 text-purple-500"/>
+                </CardHeader>
+                <CardContent>
+                    <div className={`text-2xl font-bold ${roleColors[data.userRole]}`}>
+                        {data.userRole}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        account permissions level
+                    </p>
+                </CardContent>
+                {/*todo: add email in content footer*/}
+            </Card>
+
+
+            {/* Security Alerts */}
+            <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : "min-w-[150px] border-2 border-rose-100"}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Security Alerts</CardTitle>
+                    {data.userRole === 'Guest' ? (
+                        <LockIcon className="h-4 w-4 text-red-500"/>
+                    ) : (
+                        <AlertTriangleIcon className="h-4 w-4 text-rose-500"/>
+                    )}
+                </CardHeader>
+                {data.userRole === 'Guest' ? (
+                        <LockedContent/>
+                    ) :
+                    (
+                       <CardContent>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="flex h-3 w-3 rounded-full bg-rose-500"/>
+                                    <p>{data.securityAlerts.failedDecryptAttempts} Failed Decryption Attempts</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className={`flex h-3 w-3 rounded-full ${data.securityAlerts.pendingMFASetups > 0 ? 'bg-yellow-500' : 'bg-green-500'}`}/>
+                                    {data.securityAlerts.pendingMFASetups > 0 ? (
+                                        <Button
+                                            variant="outline"
+                                            className="text-yellow-500"
+                                            onClick={() => setPeopleDrawerOpen(true)}
+                                        >
+                                            {data.securityAlerts.pendingMFASetups} MFA Setups Pending
+                                        </Button>
+                                    ) : (
+                                        <p className="text-green-500">No MFA Pending</p>
+                                    )}
+                                </div>
+                            </div>
+                        </CardContent>
+                    )
+                }
+            </Card>
+
+            {/* Encryption Health */}
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Encryption Health</CardTitle>
+                    <ShieldCheckIcon className="h-4 w-4 text-emerald-500"/>
+                </CardHeader>
+                {
+                    data.userRole === 'Guest' ? (<CardContent>
+                        <div className="text-2xl text-green-600 font-bold">{100}%</div>
+                        <p className="text-sm text-green-600 mb-1.5">Files Encrypted</p>
+                        <Progress value={100} className="h-2 bg-green-600"/>
+                    </CardContent>) : (<CardContent>
+                        <div className="text-2xl font-bold">{data.encryptionPercent}%</div>
+                        <p className="text-sm text-muted-foreground mb-1.5">Files Encrypted</p>
+                        <Progress value={data.encryptionPercent} className="h-2"/>
+                    </CardContent>)
+                }
+                <CardFooter className="text-xs text-muted-foreground">
+                    AES-256 Active | Last Audit: 2h ago
+                </CardFooter>
+            </Card>
+
+            {/* Shared Links Card */}
+            <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : ""}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Shared Links</CardTitle>
+                    {data.userRole === 'Guest' ? (
+                        <LockIcon className="h-4 w-4 text-red-500"/>
+                    ) : (
+                        <LinkIcon className="h-4 w-4 text-pink-500"/>
+                    )}
+                </CardHeader>
+                {data.userRole === 'Guest' ? (
+                        <LockedContent/>
+                    ) :
+                    (<CardContent>
+                        <div className="text-2xl font-bold">{data.sharedLinks.total}</div>
+                        <p className="text-sm text-muted-foreground">Total Links</p>
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                            <div>
+                                <p className="text-lg font-bold">{data.activeLinks}</p>
+                                <p className="text-xs text-muted-foreground">Active</p>
+                            </div>
+                            <div>
+                                <p className="text-lg font-bold">{data.sharedLinks.viewOnly}</p>
+                                <p className="text-xs text-muted-foreground">View-only</p>
+                            </div>
+                            <div>
+                                <p className="text-lg font-bold">{data.sharedLinks.downloadable}</p>
+                                <p className="text-xs text-muted-foreground">Downloadable</p>
+                            </div>
+                        </div>
+                    </CardContent>)}
+            </Card>
+
+            {/*Upload Card*/}
+            <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : "min-w-[150px]"}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Upload Files</CardTitle>
+                    {data.userRole === 'Guest' && <LockIcon className="h-4 w-4 text-red-500"/>}
+                </CardHeader>
+                {data.userRole === 'Guest' ? (
+                        <LockedContent/>
+                    ) :
+                    (
+                        <CardContent>
+                            <UploadFile />
+                        </CardContent>)}
+            </Card>
+
+            {/*People drawer for pending MFA*/}
+            {peopleDrawerOpen && (
+                <MFAPendingDrawer
+                    isOpen={peopleDrawerOpen}
+                    onClose={() => setPeopleDrawerOpen(false)}
+                />
+            )}
+        </div>
+    )
+}
+
+
+==================================================
+
+//filepath: AuthLanding.tsx
+//content:
+import {LineShadowText} from "../magicui/line-shadow-text.tsx";
+import {Login} from "./Login.tsx";
+
+export default function AuthLanding() {
+    return (
+        <div className="flex h-screen p-1">
+            <div className="w-3/5 flex justify-center items-center bg-black text-white rounded-lg">
+                <h1 className="text-balance text-5xl font-semibold leading-none tracking-tighter sm:text-6xl md:text-7xl lg:text-8xl">
+                    <span className="block">Abnormal</span>
+                    <span className="block">
+                        <LineShadowText className="italic" shadowColor={"white"}>
+                            Security
+                        </LineShadowText>
+                    </span>
+                </h1>
+            </div>
+            <div className="w-2/5 flex justify-center items-center">
+            <Login></Login></div>
+        </div>
+    );
+}
+
+
+==================================================
+
+//filepath: UploadFile.tsx
+//content:
+import React, {useState} from 'react';
+import {FileUploadDrawer} from './UploadDrawer.tsx';
+import {useToast} from "@/hooks/use-toast";
+import {fileService} from "@/services/files.ts";
+import {Loader2} from "lucide-react"; // Add this import
+
+const UploadFile: React.FC = () => {
+    const [file, setFile] = useState<File | null>(null);
+    const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+    const [isUploading, setIsUploading] = useState<boolean>(false);
+    const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+    const {toast} = useToast();
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setFile(e.target.files[0]);
+            setDrawerOpen(true);
+        }
+    };
+
+    const handleCancel = () => {
+        setFile(null);
+        setDrawerOpen(false);
+    };
+
+    const handleSubmit = async (status: 'private' | 'public', emails: string[], expiryDays: number) => {
+        if (!file) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Please select a file to upload.",
+            });
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            // First upload the file
+            const uploadedFile = await fileService.uploadFile({
+                file,
+                status,
+                expiry_days: status === 'public' ? expiryDays : undefined
+            });
+
+            // If public and emails provided, share with those users
+            if (status === 'public' && emails.length > 0) {
+                await fileService.shareFile(uploadedFile.id, { emails });
+            }
+
+            toast({
+                title: "Success",
+                description: "File uploaded successfully!",
+            });
+
+            handleCancel(); // Reset and close drawer
+            setIsRefreshing(true);
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message || "Failed to upload file",
+            });
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    if (isRefreshing) {
+        return (
+            <div className="h-screen w-screen flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+                    <p className="text-sm text-muted-foreground">Refreshing your secure workspace...</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div>
+            <div className="border-dashed border-2 border-gray-300 p-4 rounded-md text-center">
+                <input type="file" id="file" onChange={handleFileChange} className="hidden"/>
+                <label htmlFor="file" className="text-blue-500 cursor-pointer">Browse Files</label>
+            </div>
+            {drawerOpen && (
+                <FileUploadDrawer
+                    file={file}
+                    onClose={handleCancel}
+                    onSubmit={handleSubmit}
+                />
+            )}
+        </div>
+    );
+};
+
+export default UploadFile;
+
+
+==================================================
+
+//filepath: UploadDrawer.tsx
+//content:
+import React, {useState} from 'react';
+import {Button} from "@/components/ui/button";
+import {Input} from '@/components/ui/input';
+import {Label} from '@/components/ui/label';
+import {Drawer, DrawerContent, DrawerHeader, DrawerTitle,} from "@/components/ui/drawer";
+import {Badge} from "@/components/ui/badge";
+
+interface FileUploadDrawerProps {
+    file: File | null;
+    onClose: () => void;
+    onSubmit: (status: 'private' | 'public', emails: string[], expiryDays: number) => void;
+}
+
+export const FileUploadDrawer: React.FC<FileUploadDrawerProps> = ({
+                                                                      file,
+                                                                      onClose,
+                                                                      onSubmit
+                                                                  }) => {
+    const [status, setStatus] = useState<'private' | 'public'>('private');
+    const [expiryDays, setExpiryDays] = useState(7);
+    const [emails, setEmails] = useState<string[]>([]);
+    const [emailInput, setEmailInput] = useState('');
+    const [error, setError] = useState<string | null>(null);
+
+    const handleEmailAdd = () => {
+        const newEmails = emailInput.split(',')
+            .map(e => e.trim())
+            .filter(e => e.length > 0 && e.includes('@'));
+
+        if (newEmails.length === 0) return;
+
+        setEmails([...emails, ...newEmails]);
+        setEmailInput('');
+    };
+
+    const handleSubmit = () => {
+        if (status === 'public') {
+            if (expiryDays > 30 || expiryDays < 1) {
+                setError('Expiry days must be between 1-30');
+                return;
+            }
+            if (emails.length === 0) {
+                setError('Please add at least one email');
+                return;
+            }
+        }
+
+        onSubmit(status, emails, expiryDays);
+    };
+
+    return (
+        <Drawer open={true} onOpenChange={onClose}>
+            <DrawerContent>
+                <div className="max-w-[300px] mx-auto p-4">
+                    <DrawerHeader className="p-0">
+                        <DrawerTitle>File Details</DrawerTitle>
+                    </DrawerHeader>
+
+                    {file && (
+                        <div className="mb-4 mt-4 space-y-2">
+                            <p className="text-sm"><span className="font-medium">Name:</span> {file.name}</p>
+                            <p className="text-sm"><span className="font-medium">Size:</span> {(file.size / 1024 / 1024).toFixed(2)}MB</p>
+                            <p className="text-sm"><span className="font-medium">Type:</span> {file.name.split('.').pop()}</p>
+                        </div>
+                    )}
+
+                    <div className="space-y-4">
+                        <div className="flex gap-2">
+                            <Button
+                                variant={status === 'private' ? 'default' : 'outline'}
+                                onClick={() => setStatus('private')}
+                                size="sm"
+                            >
+                                Private
+                            </Button>
+                            <Button
+                                variant={status === 'public' ? 'default' : 'outline'}
+                                onClick={() => setStatus('public')}
+                                size="sm"
+                            >
+                                Share Publicly
+                            </Button>
+                        </div>
+
+                        {status === 'public' && (
+                            <div className="space-y-2">
+                                <div>
+                                    <Label>Share With</Label>
+                                    <div className="flex gap-2 mt-1">
+                                        <Input
+                                            placeholder="Enter emails (comma separated)"
+                                            value={emailInput}
+                                            onChange={(e) => setEmailInput(e.target.value)}
+                                        />
+                                        <Button
+                                            onClick={handleEmailAdd}
+                                            size="sm"
+                                        >
+                                            Add
+                                        </Button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {emails.map((email, index) => (
+                                            <Badge key={index} variant="secondary">
+                                                {email}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <Label>Link Expires In (Days)</Label>
+                                    <Input
+                                        type="number"
+                                        min="1"
+                                        max="30"
+                                        value={expiryDays}
+                                        onChange={(e) => setExpiryDays(Math.min(30, Math.max(1, Number(e.target.value))))}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {error && <p className="text-red-500 text-sm">{error}</p>}
+
+                        <div className="flex gap-2">
+                            <Button onClick={handleSubmit} size="sm">
+                                Confirm Upload
+                            </Button>
+                            <Button variant="outline" onClick={onClose} size="sm">
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </DrawerContent>
+        </Drawer>
+    );
+};
+
+
+==================================================
+
+//filepath: mfa/MFASetupDialog.tsx
+//content:
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { useState } from "react"
+import { MFADrawer } from "./MFADrawer.tsx"
+import { useNavigate } from "react-router-dom"
+import { authService } from "../../../services/auth.ts"
+import { useToast } from "@/hooks/use-toast"
+
+interface MFASetupDialogProps {
+    isOpen: boolean
+    onClose: () => void
+}
+
+export function MFASetupDialog({ isOpen, onClose }: MFASetupDialogProps) {
+    const [isMFADrawerOpen, setIsMFADrawerOpen] = useState(false)
+    const navigate = useNavigate()
+    const { toast } = useToast()
+
+    const handleCompleteLater = async () => {
+        try {
+            onClose()
+            navigate('/dashboard')
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: error.message
+            })
+        }
+    }
+
+    const handleCompleteNow = () => {
+        setIsMFADrawerOpen(true)
+    }
+
+    const handleMFASuccess = async () => {
+        try {
+            setIsMFADrawerOpen(false);
+            onClose();
+            navigate('/dashboard');
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: error.message
+            });
+        }
+    }
+
+
+    return (
+        <>
+            <Dialog open={isOpen} onOpenChange={onClose}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Complete MFA Setup</DialogTitle>
+                        <DialogDescription>
+                            To enhance your account security, we recommend setting up Multi-Factor Authentication (MFA).
+                            While you can complete this later, administrators may contact you to ensure this security measure is in place.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-end space-x-2">
+                        <Button variant="outline" onClick={handleCompleteLater}>
+                            Do it Later
+                        </Button>
+                        <Button onClick={handleCompleteNow}>
+                            Complete Now
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <MFADrawer
+                isOpen={isMFADrawerOpen}
+                onClose={() => setIsMFADrawerOpen(false)}
+                onSuccess={handleMFASuccess}
+            />
+        </>
+    )
+}
+
+
+==================================================
+
+//filepath: mfa/MFADrawer.tsx
+//content:
+import {Button} from "@/components/ui/button"
+import {Input} from "@/components/ui/input"
+import {useEffect, useState} from "react"
+import {useToast} from "@/hooks/use-toast"
+import {Copy} from "lucide-react"
+import {QRCodeSVG} from "qrcode.react";
+import {
+    Drawer,
+    DrawerContent,
+    DrawerOverlay,
+    DrawerPortal,
+} from "@/components/ui/drawer"
+import {authService} from "../../../services/auth.ts";
+import {useNavigate} from "react-router-dom";
+
+
+interface MFADrawerProps {
+    isOpen: boolean
+    onClose: () => void
+}
+
+export function MFADrawer({isOpen, onClose}: MFADrawerProps) {
+    const [qrCode, setQrCode] = useState("")
+    const [secret, setSecret] = useState("")
+    const [otp, setOtp] = useState("")
+    const [step, setStep] = useState<'qr' | 'verify'>('qr')
+    const {toast} = useToast()
+    const navigate = useNavigate()
+
+    // Fetch QR code when drawer opens
+    useEffect(() => {
+        if (isOpen) {
+            authService.setupMFA().then(response => {
+                setQrCode(response.qr_code)
+                setSecret(response.secret)
+            }).catch(error => {
+                toast({
+                    title: "Error",
+                    description: "Failed to fetch MFA setup details.",
+                    variant: "destructive"
+                })
+            })
+        }
+    }, [isOpen, toast])
+
+    const handleCopySecret = () => {
+        navigator.clipboard.writeText(secret)
+        toast({
+            title: "Secret copied!",
+            description: "The MFA secret has been copied to your clipboard."
+        })
+    }
+
+    const handleVerifyOTP = async () => {
+        try {
+            const response = await authService.verifyMFA(otp);
+            toast({
+                title: "Success",
+                description: response.message || "MFA enabled successfully",
+                variant: "default"
+            });
+            onClose();
+            navigate('/dashboard');
+        } catch (error: any) {
+            toast({
+                title: "Verification Failed",
+                description: error.message,
+                variant: "destructive"
+            });
+        }
+    };
+
+    return (
+        <Drawer open={isOpen} onOpenChange={onClose}>
+            <DrawerPortal>
+                <DrawerOverlay className="fixed inset-0 bg-black/40"/>
+                <DrawerContent className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[10px]">
+                    <div className="max-w-md mx-auto">
+                        <div className="p-4 space-y-4">
+                            <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-gray-300 mb-8"/>
+                            <h2 className="text-lg font-semibold">Enable Multi-Factor Authentication</h2>
+
+                            {step === 'qr' ? (
+                                <>
+                                    <div className="flex justify-center">
+                                        <QRCodeSVG value={qrCode} size={256}/>
+                                    </div>
+
+                                    <Button
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={handleCopySecret}
+                                    >
+                                        <Copy className="mr-2 h-4 w-4"/>
+                                        Can't scan? Click to copy
+                                    </Button>
+
+                                    <Button
+                                        className="w-full"
+                                        onClick={() => setStep('verify')}
+                                    >
+                                        Next
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="space-y-2">
+                                        <label className="text-sm">Enter OTP from your authenticator app</label>
+                                        <Input
+                                            type="text"
+                                            placeholder="Enter 6-digit code"
+                                            value={otp}
+                                            onChange={(e) => setOtp(e.target.value)}
+                                            maxLength={6}
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setStep('qr')}
+                                        >
+                                            Back
+                                        </Button>
+                                        <Button
+                                            className="flex-1"
+                                            onClick={handleVerifyOTP}
+                                        >
+                                            Verify & Enable MFA
+                                        </Button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </DrawerContent>
+            </DrawerPortal>
+        </Drawer>
+    )
+
+}
+
+
+==================================================
+
+//filepath: mfa/MFAVerifyDialogProps.tsx
+//content:
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { authService } from "@/services/auth";
+
+interface MFAVerifyDialogProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSuccess: () => void;
+}
+
+export function MFAVerifyDialog({ isOpen, onClose, onSuccess }: MFAVerifyDialogProps) {
+    const [otp, setOtp] = useState("")
+    const { toast } = useToast()
+
+    const handleVerifyOTP = async () => {
+        try {
+            await authService.verifyMFA(otp);
+            onSuccess();
+        } catch (error: any) {
+            toast({
+                title: "Verification Failed",
+                description: error.message,
+                variant: "destructive"
+            });
+        }
+    }
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Enter MFA Code</DialogTitle>
+                    <DialogDescription>
+                        Please enter the code from your authenticator app
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <Input
+                        type="text"
+                        placeholder="Enter 6-digit code"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        maxLength={6}
+                    />
+                    <Button onClick={handleVerifyOTP} className="w-full">
+                        Verify
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+
+==================================================
+
+//filepath: people/PeopleDrawer.tsx
+//content:
+
+
+==================================================
+
+//filepath: people/PeopleMFAPending.tsx
+//content:
+// components/MFAPendingDrawer.tsx
+import { useEffect, useState } from "react";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { dashboardService } from "@/services/dashboard";
+
+interface MFAPendingUser {
+    id: number;
+    name: string;
+    email: string;
+    user_since: string;
+    days_left: number;
+}
+
+interface MFAPendingDrawerProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export function MFAPendingDrawer({ isOpen, onClose }: MFAPendingDrawerProps) {
+    const [users, setUsers] = useState<MFAPendingUser[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                setIsLoading(true);
+                const data = await dashboardService.getMFAPendingUsers();
+                setUsers(data);
+            } catch (error) {
+                setError((error as Error).message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (isOpen) {
+            fetchUsers();
+        }
+    }, [isOpen]);
+
+    const handleSendEmail = (email: string) => {
+        console.log('Email sent to:', email);
+    };
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    };
+
+    return (
+        <Drawer open={isOpen} onOpenChange={onClose}>
+            <DrawerContent className="h-[90vh]">
+                <DrawerHeader>
+                    <DrawerTitle>Pending MFA Setup</DrawerTitle>
+                </DrawerHeader>
+                <div className="p-4 overflow-auto">
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-40">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        </div>
+                    ) : error ? (
+                        <div className="text-red-500 text-center">{error}</div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>User Since</TableHead>
+                                    <TableHead>Days Left</TableHead>
+                                    <TableHead>Action</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {users.map((user) => (
+                                    <TableRow key={user.id}>
+                                        <TableCell>{user.name}</TableCell>
+                                        <TableCell>{user.email}</TableCell>
+                                        <TableCell>{formatDate(user.user_since)}</TableCell>
+                                        <TableCell>
+                                            <span className={user.days_left === 0 ? "text-red-500" : "text-yellow-500"}>
+                                                {user.days_left} days
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleSendEmail(user.email)}
+                                            >
+                                                Send Reminder
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </div>
+            </DrawerContent>
+        </Drawer>
+    );
+}
+
+
+==================================================
+

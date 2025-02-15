@@ -89,6 +89,22 @@ export default function DashboardPage() {
         );
     }
 
+    const refreshData = async () => {
+        try {
+            const [dashboardData, uploadedFiles, sharedFilesData] = await Promise.all([
+                fileService.getDashboardData(),
+                fileService.getUploadedFiles(),
+                fileService.getSharedFiles()
+            ]);
+            setDashboardData(dashboardData);
+            setOwnedFiles(uploadedFiles);
+            setSharedFiles(sharedFilesData);
+        } catch (error) {
+            console.error('Failed to fetch data:', error);
+        }
+    };
+
+
     return (
         <div className="flex-col md:flex">
             <div className="flex-1 space-y-4 p-8 pt-6">
@@ -113,11 +129,12 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                {dashboardData && <DashboardCards data={dashboardData} />}
+                {dashboardData && <DashboardCards data={dashboardData} onRefresh={refreshData} />}
                 <FileTable
                     userRole={dashboardData?.userRole || 'Guest'}
                     ownedFiles={ownedFiles}
                     sharedFiles={sharedFiles}
+                    onRefresh={refreshData}
                 />
 
                 {isMFADrawerOpen && (<MFADrawer

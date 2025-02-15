@@ -72,7 +72,10 @@ const formatStorage = (valueGB: number) => {
     return `${Math.round(valueMB)}MB`
 }
 
-export function DashboardCards({data}: { data: DashboardData }) {
+export function DashboardCards({data, onRefresh}: {
+    data: DashboardData,
+    onRefresh?: () => Promise<void>
+}) {
     const storageData = useMemo(() => [
         {category: "used", value: data.usedStorageGB},
         {category: "free", value: STORAGE_LIMIT_GB - data.usedStorageGB},
@@ -287,17 +290,17 @@ export function DashboardCards({data}: { data: DashboardData }) {
 
             {/*Upload Card*/}
             <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : "min-w-[150px]"}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardHeader>
                     <CardTitle className="text-sm font-medium">Upload Files</CardTitle>
                     {data.userRole === 'Guest' && <LockIcon className="h-4 w-4 text-red-500"/>}
                 </CardHeader>
                 {data.userRole === 'Guest' ? (
-                        <LockedContent/>
-                    ) :
-                    (
-                        <CardContent>
-                            <UploadFile />
-                        </CardContent>)}
+                    <LockedContent/>
+                ) : (
+                    <CardContent>
+                        <UploadFile onSuccess={onRefresh} />
+                    </CardContent>
+                )}
             </Card>
 
             {/*People drawer for pending MFA*/}

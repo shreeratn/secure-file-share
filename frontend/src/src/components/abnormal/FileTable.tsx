@@ -36,10 +36,11 @@ export interface File {
 interface FileTableProps {
     userRole: 'Guest' | 'Regular' | 'Admin'
     ownedFiles: any
-    sharedFiles: any
+    sharedFiles: any,
+    onRefresh: () => Promise<void>
 }
 
-export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
+export function FileTable({userRole, ownedFiles, sharedFiles, onRefresh}: FileTableProps) {
     const [activeTab, setActiveTab] = useState<'owned' | 'shared'>(userRole === 'Guest' ? 'shared' : 'owned')
     const [rowSelection, setRowSelection] = useState({})
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -64,24 +65,30 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
     };
 
     const handleDelete = async (fileId: string) => {
-        setIsDeleting(true);
+        setIsDeleting(true)
         try {
-            await fileService.deleteFile(fileId);
+            await fileService.deleteFile(fileId)
             toast({
                 title: "Success",
                 description: "File deleted successfully",
-            });
-            window.location.reload();
+            })
+            await onRefresh() // Use the refresh function instead of page reload
         } catch (error: any) {
             toast({
                 variant: "destructive",
                 title: "Error",
                 description: error.message || "Failed to delete file",
-            });
+            })
         } finally {
-            setIsDeleting(false);
+            setIsDeleting(false)
         }
-    };
+    }
+
+    const handleShareSuccess = async () => {
+        await onRefresh() // Refresh data after successful share
+        setShareDrawerOpen(false)
+        setSelectedFile(null)
+    }
 
     function formatFileSize(size: number): string {
         if (size >= 1024 * 1024 * 300) {
@@ -352,6 +359,7 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
                         setShareDrawerOpen(false)
                         setSelectedFile(null)
                     }}
+                    onSuccess={handleShareSuccess}
                 />
             )}
         </div>
