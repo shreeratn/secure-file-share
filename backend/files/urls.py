@@ -8,4 +8,5 @@ urlpatterns = [
     path('upload/', views.upload_file, name='upload-file'),
     path('delete/<int:file_id>/', views.delete_file, name='delete-file'),
     path('share/<int:file_id>/', views.share_file, name='share-file'),
+    path('download/<str:download_link>/', views.download_file, name='download-file'),
 ]

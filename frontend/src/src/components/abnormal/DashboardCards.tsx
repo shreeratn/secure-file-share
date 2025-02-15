@@ -94,65 +94,81 @@ export function DashboardCards({data}: { data: DashboardData }) {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Files Shared Card */}
-            <Card className="min-w-[150px]">
+            <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : "min-w-[150px]"}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Files Shared</CardTitle>
-                    <Share2Icon className="h-4 w-4 text-blue-500"/>
+                    {data.userRole === 'Guest' ? (
+                        <LockIcon className="h-4 w-4 text-red-500"/>
+                    ) : (
+                        <Share2Icon className="h-4 w-4 text-blue-500"/>
+                    )}
                 </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{data.totalFiles}</div>
-                    <p className="text-xs text-muted-foreground">
-                        files shared till date
-                    </p>
-                </CardContent>
+                {data.userRole === 'Guest' ? (
+                    <LockedContent/>
+                ) : (
+                    <CardContent>
+                        <div className="text-2xl font-bold">{data.totalFiles}</div>
+                        <p className="text-xs text-muted-foreground">
+                            files shared till date
+                        </p>
+                    </CardContent>
+                )}
             </Card>
 
             {/* Storage Card */}
-            <Card className="min-w-[150px]">
+            <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : "min-w-[150px]"}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Storage</CardTitle>
-                    <DatabaseIcon className="h-4 w-4 text-green-500"/>
+                    {data.userRole === 'Guest' ? (
+                        <LockIcon className="h-4 w-4 text-red-500"/>
+                    ) : (
+                        <DatabaseIcon className="h-4 w-4 text-green-500"/>
+                    )}
                 </CardHeader>
-                <CardContent className="flex items-center justify-between">
-                    {/* Left Text Section */}
-                    <div className="space-y-1">
-                        <div className="text-2xl font-bold">
-                            {storageText.free}
-                            <span className="text-sm text-muted-foreground"> / {STORAGE_LIMIT_GB}GB</span>
+                {data.userRole === 'Guest' ? (
+                    <LockedContent/>
+                ) : (
+                    <CardContent className="flex items-center justify-between">
+                        {/* Left Text Section */}
+                        <div className="space-y-1">
+                            <div className="text-2xl font-bold">
+                                {storageText.free}
+                                <span className="text-sm text-muted-foreground"> / {STORAGE_LIMIT_GB}GB</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                Used: {storageText.used}
+                            </p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                            Used: {storageText.used}
-                        </p>
-                    </div>
 
-                    {/* Pie Chart */}
-                    <div className="h-[70px] w-[70px] -mr-3">
-                        <ChartContainer
-                            config={storageChartConfig}
-                            className="aspect-square h-full w-full"
-                        >
-                            <PieChart>
-                                <ChartTooltip
-                                    cursor={false}
-                                    content={<ChartTooltipContent hideLabel/>}
-                                />
-                                <Pie
-                                    data={storageData}
-                                    dataKey="value"
-                                    nameKey="category"
-                                    cx="50%"
-                                    cy="50%"
-                                    outerRadius={30}
-                                    paddingAngle={0}
-                                >
-                                    {storageData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={storageChartConfig[entry.category].color}/>
-                                    ))}
-                                </Pie>
-                            </PieChart>
-                        </ChartContainer>
-                    </div>
-                </CardContent>
+                        {/* Pie Chart */}
+                        <div className="h-[70px] w-[70px] -mr-3">
+                            <ChartContainer
+                                config={storageChartConfig}
+                                className="aspect-square h-full w-full"
+                            >
+                                <PieChart>
+                                    <ChartTooltip
+                                        cursor={false}
+                                        content={<ChartTooltipContent hideLabel/>}
+                                    />
+                                    <Pie
+                                        data={storageData}
+                                        dataKey="value"
+                                        nameKey="category"
+                                        cx="50%"
+                                        cy="50%"
+                                        outerRadius={30}
+                                        paddingAngle={0}
+                                    >
+                                        {storageData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={storageChartConfig[entry.category].color}/>
+                                        ))}
+                                    </Pie>
+                                </PieChart>
+                            </ChartContainer>
+                        </div>
+                    </CardContent>
+                )}
             </Card>
 
 

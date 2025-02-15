@@ -1,11 +1,11 @@
 import React, {useState} from 'react';
 import {FileUploadDrawer} from './UploadDrawer.tsx';
 import {useToast} from "@/hooks/use-toast";
-import {fileService} from "@/services/files.ts"; // Import shadcn toast
+import {fileService} from "@/services/files.ts";
+import {Loader2} from "lucide-react"; // Add this import
 
 const UploadFile: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
-    const [expiryDays, setExpiryDays] = useState<number>(1);
     const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
     const [isUploading, setIsUploading] = useState<boolean>(false);
     const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -20,11 +20,10 @@ const UploadFile: React.FC = () => {
 
     const handleCancel = () => {
         setFile(null);
-        setExpiryDays(1);
         setDrawerOpen(false);
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (status: 'private' | 'public', emails: string[], expiryDays: number) => {
         if (!file) {
             toast({
                 variant: "destructive",
@@ -36,11 +35,17 @@ const UploadFile: React.FC = () => {
 
         setIsUploading(true);
         try {
-            await fileService.uploadFile({
+            // First upload the file
+            const uploadedFile = await fileService.uploadFile({
                 file,
-                status: 'private',
-                expiry_days: expiryDays
+                status,
+                expiry_days: status === 'public' ? expiryDays : undefined
             });
+
+            // If public and emails provided, share with those users
+            if (status === 'public' && emails.length > 0) {
+                await fileService.shareFile(uploadedFile.id, { emails });
+            }
 
             toast({
                 title: "Success",
@@ -51,7 +56,7 @@ const UploadFile: React.FC = () => {
             setIsRefreshing(true);
             setTimeout(() => {
                 window.location.reload();
-            }, 1000); // Short delay before refreshing the page
+            }, 1000);
         } catch (error: any) {
             toast({
                 variant: "destructive",
@@ -83,11 +88,8 @@ const UploadFile: React.FC = () => {
             {drawerOpen && (
                 <FileUploadDrawer
                     file={file}
-                    expiryDays={expiryDays}
-                    setExpiryDays={setExpiryDays}
                     onClose={handleCancel}
                     onSubmit={handleSubmit}
-                    isUploading={isUploading}
                 />
             )}
         </div>

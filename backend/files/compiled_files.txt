@@ -1,4 +1,150 @@
-from django.http import FileResponse
+//filename: migrations
+Error reading file: [Errno 21] Is a directory: 'migrations'
+
+//filename: models.py
+from django.db import models
+from authentication.models import User
+
+class File(models.Model):
+    STATUS_CHOICES = (
+        ('private', 'Private'),
+        ('public', 'Public'),
+    )
+
+    name = models.CharField(max_length=255)
+    file = models.FileField(upload_to='uploads/')
+    extension = models.CharField(max_length=10)
+    size = models.IntegerField()  # in bytes
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_files')
+    uploaded_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='private')
+    download_link = models.CharField(max_length=255, null=True, blank=True)
+    expiry_date = models.DateTimeField(null=True, blank=True)
+    shared_with = models.ManyToManyField(User, related_name='shared_files', blank=True)
+
+class UserStorage(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    used_storage = models.BigIntegerField(default=0)  # in bytes
+
+    @property
+    def allocated_storage(self):
+        if self.user.user_type == 'admin':
+            return 50 * 1024 * 1024 * 1024  # 50GB
+        elif self.user.user_type == 'regular':
+            return 1 * 1024 * 1024 * 1024   # 1GB
+        return 500 * 1024 * 1024            # 500MB for guest
+
+
+==================================================
+
+//filename: serializers.py
+from rest_framework import serializers
+from .models import File, UserStorage
+from datetime import timedelta, datetime, timezone
+
+
+class FileSerializer(serializers.ModelSerializer):
+    uploaded_by = serializers.SerializerMethodField()
+
+    class Meta:
+        model = File
+        fields = ['id', 'name', 'size', 'extension', 'status', 'expiry_date', 'uploaded_date', 'download_link', 'uploaded_by']
+
+    def get_uploaded_by(self, obj):
+        return {
+            'id': obj.uploaded_by.id,
+            'name': obj.uploaded_by.first_name,
+            'email': obj.uploaded_by.email
+        }
+
+class UserStorageSerializer(serializers.ModelSerializer):
+    allocated_storage = serializers.ReadOnlyField()
+
+    class Meta:
+        model = UserStorage
+        fields = ['used_storage', 'allocated_storage']
+
+class FileUploadSerializer(serializers.ModelSerializer):
+    file = serializers.FileField()
+    expiry_days = serializers.IntegerField(min_value=1, max_value=30, default=7)
+
+    class Meta:
+        model = File
+        fields = ['file', 'status', 'expiry_days']
+
+    def create(self, validated_data):
+        # Remove expiry_days from validated_data as it's not a model field
+        expiry_days = validated_data.pop('expiry_days', 7)
+        file_obj = validated_data.pop('file')
+
+        # Create the file instance
+        file_instance = File.objects.create(
+            name=file_obj.name,
+            file=file_obj,
+            extension=file_obj.name.split('.')[-1],
+            size=file_obj.size,
+            uploaded_by=self.context['request'].user,
+            status=validated_data.get('status', 'private'),
+            expiry_date=datetime.now(timezone.utc) + timedelta(days=expiry_days)
+        )
+
+        return file_instance
+
+
+==================================================
+
+//filename: __init__.py
+
+
+==================================================
+
+//filename: __pycache__
+Error reading file: [Errno 21] Is a directory: '__pycache__'
+
+//filename: apps.py
+from django.apps import AppConfig
+
+
+class FilesConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "files"
+
+
+==================================================
+
+//filename: admin.py
+from django.contrib import admin
+
+# Register your models here.
+
+
+==================================================
+
+//filename: tests.py
+from django.test import TestCase
+
+# Create your tests here.
+
+
+==================================================
+
+//filename: urls.py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('user-data/', views.get_user_data, name='user-data'),
+    path('uploaded-files/', views.get_uploaded_files, name='uploaded-files'),
+    path('shared-files/', views.get_shared_files, name='shared-files'),
+    path('upload/', views.upload_file, name='upload-file'),
+    path('delete/<int:file_id>/', views.delete_file, name='delete-file'),
+    path('share/<int:file_id>/', views.share_file, name='share-file'),
+]
+
+
+==================================================
+
+//filename: views.py
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -73,7 +219,7 @@ def upload_file(request):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-        # Create file record
+            # Create file record
             new_file = File.objects.create(
                 name=file.name,
                 file=file,
@@ -81,9 +227,13 @@ def upload_file(request):
                 size=file.size,
                 uploaded_by=request.user,
                 status=serializer.validated_data.get('status', 'private'),
-                expiry_date=datetime.now(timezone.utc) + timedelta(days=serializer.validated_data.get('expiry_days', 7)),
-                download_link=str(uuid.uuid4())  # Generate download link for all files
+                expiry_date=datetime.now(timezone.utc) + timedelta(days=serializer.validated_data.get('expiry_days', 7))
             )
+
+            # Generate download link for public files
+            if new_file.status == 'public':
+                new_file.download_link = str(uuid.uuid4())
+                new_file.save()
 
             # Update user's storage usage
             storage.used_storage += file.size
@@ -93,7 +243,6 @@ def upload_file(request):
                 FileSerializer(new_file).data,
                 status=status.HTTP_201_CREATED
             )
-
 
         except Exception as e:
             return Response({
@@ -144,30 +293,6 @@ def share_file(request, file_id):
     except File.DoesNotExist:
         return Response({'error': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
 
-from django.http import FileResponse
-import mimetypes
 
-@api_view(['GET'])
-def download_file(request, download_link):
-    try:
-        file = File.objects.get(download_link=download_link)
-
-        # Check expiry
-        if file.expiry_date and file.expiry_date < datetime.now(timezone.utc):
-            return Response({'error': 'File has expired'}, status=status.HTTP_410_GONE)
-
-        # Get file path and determine content type
-        file_path = file.file.path
-        content_type, _ = mimetypes.guess_type(file_path)
-        if not content_type:
-            content_type = 'application/octet-stream'
-
-        # Create response
-        response = FileResponse(open(file_path, 'rb'), content_type=content_type)
-        response['Content-Disposition'] = f'attachment; filename="{file.name}"'
-
-        return response
-
-    except File.DoesNotExist:
-        return Response({'error': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
+==================================================
 

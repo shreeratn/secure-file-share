@@ -4,9 +4,18 @@ from datetime import timedelta, datetime, timezone
 
 
 class FileSerializer(serializers.ModelSerializer):
+    uploaded_by = serializers.SerializerMethodField()
+
     class Meta:
         model = File
-        fields = ['id', 'name', 'size', 'extension', 'status', 'expiry_date', 'uploaded_date', 'download_link']
+        fields = ['id', 'name', 'size', 'extension', 'status', 'expiry_date', 'uploaded_date', 'download_link', 'uploaded_by']
+
+    def get_uploaded_by(self, obj):
+        return {
+            'id': obj.uploaded_by.id,
+            'name': obj.uploaded_by.first_name,
+            'email': obj.uploaded_by.email
+        }
 
 class UserStorageSerializer(serializers.ModelSerializer):
     allocated_storage = serializers.ReadOnlyField()
@@ -40,3 +49,4 @@ class FileUploadSerializer(serializers.ModelSerializer):
         )
 
         return file_instance
+

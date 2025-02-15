@@ -2,43 +2,22 @@
 "use client"
 
 import {useState} from "react"
-import {
-    ColumnDef,
-    flexRender,
-    getCoreRowModel,
-    useReactTable,
-} from "@tanstack/react-table"
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
+import {ColumnDef, flexRender, getCoreRowModel, useReactTable,} from "@tanstack/react-table"
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table"
 import {Button} from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu"
 import {Badge} from "@/components/ui/badge"
 import {Checkbox} from "@/components/ui/checkbox"
-import {
-    Download,
-    Share2,
-    Lock,
-    MoreVertical,
-    Trash2,
-    Loader2,
-} from "lucide-react"
+import {Download, Loader2, Lock, MoreVertical, Share2, Trash2,} from "lucide-react"
 import {Tabs, TabsList, TabsTrigger} from "@/components/ui/tabs"
-import { ShareDrawer } from "./ShareDrawer.tsx"
-import { useToast } from "@/hooks/use-toast"
-import { fileService } from "@/services/files.ts"
+import {ShareDrawer} from "./ShareDrawer"
+import {useToast} from "@/hooks/use-toast"
+import {fileService} from "@/services/files"
 
 export interface File {
+    uploaded_by?: {
+        name?: string
+    }
     expiry_date: string;
     id: string
     name: string
@@ -49,7 +28,9 @@ export interface File {
     sharedBy?: string
     uploadedAt?: Date
     sharedAt?: Date
-    uploaded_date?: String
+    uploaded_date?: string
+    status?: string,
+    download_link: string
 }
 
 interface FileTableProps {
@@ -58,160 +39,57 @@ interface FileTableProps {
     sharedFiles: any
 }
 
-export const columns: ColumnDef<File>[] = [
-    {
-        id: "select",
-        header: ({table}) => (
-            <Checkbox
-                checked={table.getIsAllPageRowsSelected()}
-                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                aria-label="Select all"
-            />
-        ),
-        cell: ({row}) => (
-            <Checkbox
-                checked={row.getIsSelected()}
-                onCheckedChange={(value) => row.toggleSelected(!!value)}
-                aria-label="Select row"
-            />
-        ),
-    },
-    {
-        accessorKey: "name",
-        header: "File Name",
-    },
-    {
-        accessorKey: "size",
-        header: "Size",
-        cell: ({ row }) => formatFileSize(row.getValue("size")),
-    },
-    {
-        accessorKey: "extension",
-        header: "Type",
-        cell: ({row}) => (
-            <Badge variant="outline">{row.getValue("extension").toUpperCase()}</Badge>
-        ),
-    },
-    {
-        accessorKey: "isShared",
-        header: "Status",
-        cell: ({row}) => row.original.isShared ? (
-            <div className="flex items-center gap-2">
-                <Share2 className="h-4 w-4 text-green-500"/>
-                <span>Shared</span>
-            </div>
-        ) : (
-            <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 text-red-500"/>
-                <span>Private</span>
-            </div>
-        ),
-    },
-    {
-        accessorKey: "expiry",
-        header: "Expires In",
-    },
-    {
-        accessorKey: "uploadedAt",
-        header: "Upload Date",
-        cell: ({row}) => new Date(row.original.uploadedAt).toLocaleDateString(),
-    },
-    {
-        id: "actions",
-        cell: ({ row }) => (
-            <>
-                {isDeleting ? (
-                    <div className="flex items-center justify-center">
-                        <Loader2 className="h-4 w-4 animate-spin"/>
-                    </div>
-                ) : (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => console.log('Download', row.original)}>
-                                Download
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => {
-                                setSelectedFile(row.original)
-                                setShareDrawerOpen(true)
-                            }}>
-                                Share
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={() => handleDelete(row.original.id)}
-                                className="text-red-500"
-                            >
-                                Delete
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                )}
-            </>
-        ),
-    },
-]
-
-const sharedColumns: ColumnDef<File>[] = [
-    {
-        accessorKey: "name",
-        header: "File Name",
-    },
-    {
-        accessorKey: "size",
-        header: "Size",
-        cell: ({ row }) => formatFileSize(row.getValue("size")),
-    },
-    {
-        accessorKey: "extension",
-        header: "Type",
-        cell: ({row}) => (
-            <Badge variant="outline">{row.getValue("extension").toUpperCase()}</Badge>
-        ),
-    },
-    {
-        accessorKey: "sharedBy",
-        header: "Shared By",
-    },
-    {
-        accessorKey: "sharedAt",
-        header: "Shared Date",
-        cell: ({row}) => row.original.sharedAt ?
-            new Date(row.original.sharedAt).toLocaleDateString() : "-",
-    },
-    {
-        accessorKey: "expiry",
-        header: "Expires In",
-    },
-    {
-        id: "download",
-        cell: ({row}) => (
-            <Button variant="ghost" size="sm">
-                <Download className="h-4 w-4 mr-2"/>
-                Download
-            </Button>
-        ),
-    },
-]
-
-function formatFileSize(size: number): string {
-    if (size >= 1024 * 1024 * 300) {
-        return (size / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
-    } else {
-        return (size / (1024 * 1024)).toFixed(2) + ' MB';
-    }
-}
-
 export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
     const [activeTab, setActiveTab] = useState<'owned' | 'shared'>(userRole === 'Guest' ? 'shared' : 'owned')
     const [rowSelection, setRowSelection] = useState({})
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [shareDrawerOpen, setShareDrawerOpen] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false);
-    const { toast } = useToast();
+    const {toast} = useToast();
+
+    const handleDownload = async (downloadLink: string, downloadName: string) => {
+        try {
+            await fileService.downloadFile(downloadLink, downloadName);
+            toast({
+                title: "Success",
+                description: "File downloaded successfully",
+            });
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message || "Failed to download file",
+            });
+        }
+    };
+
+    const handleDelete = async (fileId: string) => {
+        setIsDeleting(true);
+        try {
+            await fileService.deleteFile(fileId);
+            toast({
+                title: "Success",
+                description: "File deleted successfully",
+            });
+            window.location.reload();
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message || "Failed to delete file",
+            });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    function formatFileSize(size: number): string {
+        if (size >= 1024 * 1024 * 300) {
+            return (size / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+        } else {
+            return (size / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+    }
 
     const columns: ColumnDef<File>[] = [
         {
@@ -234,11 +112,16 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
         {
             accessorKey: "name",
             header: "File Name",
+            cell: ({row}) => (
+                <div className="truncate max-w-xs" title={row.getValue("name")}>
+                    {row.getValue("name")}
+                </div>
+            ),
         },
         {
             accessorKey: "size",
             header: "Size",
-            cell: ({ row }) => formatFileSize(row.getValue("size")),
+            cell: ({row}) => formatFileSize(row.getValue("size")),
         },
         {
             accessorKey: "extension",
@@ -250,7 +133,7 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
         {
             accessorKey: "isShared",
             header: "Status",
-            cell: ({row}) => row.original.isShared ? (
+            cell: ({row}) => row.original.status === 'public' ? (
                 <div className="flex items-center gap-2">
                     <Share2 className="h-4 w-4 text-green-500"/>
                     <span>Shared</span>
@@ -265,30 +148,26 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
         {
             accessorKey: "expiry",
             header: "Expires In",
-            cell: ({ row }) => {
-                const expiryDate = row.original.expiry_date; // match the exact field name from API
+            cell: ({row}) => {
+                const expiryDate = row.original.expiry_date;
                 if (!expiryDate) return "-";
-
-                // Calculate remaining days
                 const now = new Date();
                 const expiry = new Date(expiryDate);
-                const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
-
+                const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
                 return `${diffDays} days`;
             }
-
         },
         {
             accessorKey: "uploadedAt",
             header: "Upload Date",
-            cell: ({ row }) => {
+            cell: ({row}) => {
                 const date = row.original["uploaded_date"];
                 return date ? new Date(date).toLocaleDateString() : "-";
             }
         },
         {
             id: "actions",
-            cell: ({ row }) => (
+            cell: ({row}) => (
                 <>
                     {isDeleting ? (
                         <div className="flex items-center justify-center">
@@ -298,11 +177,11 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="h-8 w-8 p-0">
-                                    <MoreVertical className="h-4 w-4" />
+                                    <MoreVertical className="h-4 w-4"/>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => console.log('Download', row.original)}>
+                                <DropdownMenuItem onClick={() => handleDownload(row.original.download_link, row.original.name.split('.').slice(0, -1).join('.'))}>
                                     Download
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => {
@@ -323,7 +202,65 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
                 </>
             ),
         }
-    ]
+    ];
+
+    const sharedColumns: ColumnDef<File>[] = [
+        {
+            accessorKey: "name",
+            header: "File Name",
+            cell: ({row}) => (
+                <div className="truncate max-w-xs" title={row.getValue("name")}>
+                    {row.getValue("name")}
+                </div>
+            ),
+        },
+        {
+            accessorKey: "size",
+            header: "Size",
+            cell: ({row}) => formatFileSize(row.getValue("size")),
+        },
+        {
+            accessorKey: "extension",
+            header: "Type",
+            cell: ({row}) => (
+                <Badge variant="outline">{row.getValue("extension").toUpperCase()}</Badge>
+            ),
+        },
+        {
+            accessorKey: "sharedBy",
+            header: "Shared By",
+            cell: ({row}) => row.original.uploaded_by?.name,
+        },
+        {
+            accessorKey: "sharedAt",
+            header: "Shared Date",
+            cell: ({row}) => row.original.uploaded_date ?
+                new Date(row.original.uploaded_date).toLocaleDateString() : "-",
+        },
+        {
+            accessorKey: "expiry",
+            header: "Expires In",
+            cell: ({row}) => {
+                const expiryDate = row.original.expiry_date;
+                if (!expiryDate) return "-";
+                const now = new Date();
+                const expiry = new Date(expiryDate);
+                const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                return `${diffDays} days`;
+            }
+        },
+        {
+            id: "download",
+            cell: ({row}) => (
+                <Button variant="ghost" size="sm"
+                        onClick={() => handleDownload(row.original.download_link, row.original.name.split('.').slice(0, -1).join('.'))}
+                >
+                    <Download className="h-4 w-4 mr-2"/>
+                    Download
+                </Button>
+            ),
+        },
+    ];
 
     const table = useReactTable({
         data: activeTab === 'owned' ? ownedFiles : sharedFiles,
@@ -334,26 +271,6 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
             rowSelection,
         },
     })
-
-    const handleDelete = async (fileId: string) => {
-        setIsDeleting(true);
-        try {
-            await fileService.deleteFile(fileId);
-            toast({
-                title: "Success",
-                description: "File deleted successfully",
-            });
-            window.location.reload(); // Refresh the page
-        } catch (error: any) {
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: error.message || "Failed to delete file",
-            });
-        } finally {
-            setIsDeleting(false);
-        }
-    };
 
     return (
         <div className="rounded-md border mt-4 flex flex-col h-[calc(100vh-540px)]">
@@ -370,7 +287,6 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
                         </TabsTrigger>
                     </TabsList>
                 </Tabs>
-
                 <div className="flex items-center gap-4">
                     {activeTab === 'owned' && table.getSelectedRowModel().rows.length > 0 && (
                         <Button
@@ -438,7 +354,6 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
                     }}
                 />
             )}
-
         </div>
     )
 }

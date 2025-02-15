@@ -84,12 +84,12 @@ const transformToDashboardData = (apiData: DashboardApiResponse): DashboardData 
     return {
         totalFiles: apiData.total_files_shared,
         usedStorageGB,
-        activeLinks: 0, // You'll need to add this to your API
+        activeLinks: 0, // Need to add this to your API
         userRole: apiData.current_role === 'admin' ? 'Admin' : 'Regular',
         encryptionPercent: apiData.encryption_health || 100,
         sharedLinks: {
             total: apiData.total_files_shared,
-            viewOnly: 0, // You'll need to add these to your API
+            viewOnly: 0, // Need to add these to your API
             downloadable: 0,
         },
         accessControl: {
@@ -222,68 +222,6 @@ export const fileService = {
         }
     },
 
-    transformToDashboardData: (apiData: DashboardApiResponse): DashboardData => {
-        // Convert bytes to GB
-        const usedStorageGB = apiData.used_storage / (1024 * 1024 * 1024);
-
-        // Default values for guest
-        if (apiData.current_role === 'guest') {
-            return {
-                totalFiles: apiData.total_files_shared,
-                usedStorageGB,
-                activeLinks: 0,
-                userRole: 'Guest',
-                encryptionPercent: 100,
-                sharedLinks: {
-                    total: 0,
-                    viewOnly: 0,
-                    downloadable: 0,
-                },
-                accessControl: {
-                    pendingRequests: 0,
-                    restrictedFilesPercent: 0,
-                    adminOverrides: 0,
-                },
-                securityAlerts: {
-                    failedDecryptAttempts: 0,
-                    pendingMFASetups: 0,
-                },
-                userRoles: {
-                    admins: 0,
-                    regularUsers: 0,
-                    guests: 0,
-                },
-            };
-        }
-
-        // For Regular and Admin users
-        return {
-            totalFiles: apiData.total_files_shared,
-            usedStorageGB,
-            activeLinks: 0, // You'll need to add this to your API
-            userRole: apiData.current_role === 'admin' ? 'Admin' : 'Regular',
-            encryptionPercent: apiData.encryption_health || 100,
-            sharedLinks: {
-                total: apiData.total_files_shared,
-                viewOnly: 0, // You'll need to add these to your API
-                downloadable: 0,
-            },
-            accessControl: {
-                pendingRequests: 0,
-                restrictedFilesPercent: 0,
-                adminOverrides: 0,
-            },
-            securityAlerts: {
-                failedDecryptAttempts: apiData.failed_decryption_alerts || 0,
-                pendingMFASetups: apiData.incomplete_mfa || 0,
-            },
-            userRoles: {
-                admins: 0,
-                regularUsers: 0,
-                guests: 0,
-            },
-        };
-    },
 
     getDashboardData: async (): Promise<DashboardData> => {
         try {
@@ -296,6 +234,58 @@ export const fileService = {
         } catch (error: any) {
             throw new Error('Failed to fetch dashboard data');
         }
+    },
+
+    downloadFile: async (downloadLink: string, downloadName: string): Promise<void> => {
+        try {
+            const response = await axios.get(
+                `${API_BASE_URL}/download/${downloadLink}/`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    },
+                    responseType: 'blob'
+                }
+            );
+
+            // Get content type from response headers
+            const contentType = response.headers['content-type'];
+
+            // Create blob with correct content type
+            const blob = new Blob([response.data], { type: contentType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            // Check for Content-Disposition header in both cases
+            const contentDisposition = response.headers['content-disposition'] || response.headers['Content-Disposition'];
+            let filename = downloadName;
+
+            if (contentDisposition) {
+                const matches = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (matches != null && matches[1]) {
+                    filename = matches[1].replace(/['"]/g, '');
+                }
+            }
+
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+
+            // Cleanup
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error: any) {
+            if (error.response?.status === 404) {
+                throw new Error('File not found');
+            }
+            if (error.response?.status === 410) {
+                throw new Error('File has expired');
+            }
+            throw new Error('Failed to download file');
+        }
     }
+
+
 
 };
