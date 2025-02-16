@@ -7,9 +7,8 @@ import {AuroraText} from "../magicui/aurora-text.tsx";
 import {useNavigate} from 'react-router-dom';
 import {authService} from "../../services/auth.ts";
 import {MFADrawer} from "./mfa/MFADrawer.tsx";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {Loader2} from "lucide-react";
-import {useEffect} from "react";
 import {fileService} from "@/services/files";
 
 
@@ -116,7 +115,7 @@ export default function DashboardPage() {
                             Secure File Share by <AuroraText>Shree Ratn</AuroraText>
                         </h1>
                         <div className="flex items-center gap-4">
-                        <span className="text-sm text-gray-500">Hey, {dashboardData!.name}</span>
+                            <span className="text-sm text-gray-500">Hey, {dashboardData!.name}</span>
                             {!isMFAenabled && (
                                 <Button
                                     variant="outline"

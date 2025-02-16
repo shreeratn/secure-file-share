@@ -1,5 +1,6 @@
-from django.db import models
 from authentication.models import User
+from django.db import models
+
 
 class File(models.Model):
     STATUS_CHOICES = (
@@ -20,6 +21,7 @@ class File(models.Model):
     encryption_key = models.TextField(null=True, blank=True)
     encryption_iv = models.BinaryField(null=True, blank=True)
 
+
 class UserStorage(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     used_storage = models.BigIntegerField(default=0)  # in bytes
@@ -29,8 +31,9 @@ class UserStorage(models.Model):
         if self.user.user_type == 'admin':
             return 50 * 1024 * 1024 * 1024  # 50GB
         elif self.user.user_type == 'regular':
-            return 1 * 1024 * 1024 * 1024   # 1GB
-        return 500 * 1024 * 1024            # 500MB for guest
+            return 1 * 1024 * 1024 * 1024  # 1GB
+        return 500 * 1024 * 1024  # 500MB for guest
+
 
 class RoleUpgradeRequest(models.Model):
     STATUS_CHOICES = (

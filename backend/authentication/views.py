@@ -1,14 +1,16 @@
+from datetime import timedelta
+
+import pyotp
 from django.contrib.auth import authenticate
-from rest_framework_simplejwt.tokens import RefreshToken, TokenError
+from django.utils import timezone
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
-import pyotp
-from django.utils import timezone
-from datetime import timedelta
-from .serializers import UserRegistrationSerializer, LoginSerializer, MFASerializer, MFAPendingUserSerializer
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
+
 from .models import User
+from .serializers import UserRegistrationSerializer, LoginSerializer, MFASerializer, MFAPendingUserSerializer
 
 
 @api_view(["POST"])
@@ -149,9 +151,11 @@ def verify_mfa_setup(request):
         'success': False
     }, status=status.HTTP_400_BAD_REQUEST)
 
+
 # authentications/views.py
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -165,6 +169,7 @@ def get_all_users(request):
     users = User.objects.all().order_by('-created_at')
     serializer = UserListSerializer(users, many=True)
     return Response(serializer.data)
+
 
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])

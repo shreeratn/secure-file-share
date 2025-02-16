@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('authentication', '0001_initial'),
     ]
@@ -13,6 +12,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='user_type',
-            field=models.CharField(choices=[('guest', 'Guest'), ('regular', 'Regular'), ('admin', 'Admin')], default='guest', max_length=10),
+            field=models.CharField(choices=[('guest', 'Guest'), ('regular', 'Regular'), ('admin', 'Admin')],
+                                   default='guest', max_length=10),
         ),
     ]

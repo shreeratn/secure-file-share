@@ -1,11 +1,11 @@
 // components/role/RoleApprovalDrawer.tsx
-import { useState, useEffect } from "react"
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/hooks/use-toast"
-import { fileService } from "@/services/files"
+import {useEffect, useState} from "react"
+import {Drawer, DrawerContent, DrawerHeader, DrawerTitle} from "@/components/ui/drawer"
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table"
+import {Button} from "@/components/ui/button"
+import {Badge} from "@/components/ui/badge"
+import {useToast} from "@/hooks/use-toast"
+import {fileService} from "@/services/files"
 import {cn} from "../../../lib/utils.ts";
 
 interface RoleRequest {
@@ -24,10 +24,10 @@ interface RoleApprovalDrawerProps {
     onSuccess?: () => Promise<void>
 }
 
-export function RoleApprovalDrawer({ isOpen, onClose, onSuccess }: RoleApprovalDrawerProps) {
+export function RoleApprovalDrawer({isOpen, onClose, onSuccess}: RoleApprovalDrawerProps) {
     const [requests, setRequests] = useState<RoleRequest[]>([])
     const [isLoading, setIsLoading] = useState(true)
-    const { toast } = useToast()
+    const {toast} = useToast()
 
     const fetchRequests = async () => {
         try {

@@ -1,9 +1,11 @@
+import logging
 import uuid
+from datetime import timedelta, datetime, timezone
 
 from rest_framework import serializers
+
 from .models import File, UserStorage, RoleUpgradeRequest
-from datetime import timedelta, datetime, timezone
-import logging
+
 logger = logging.getLogger('files')  # Match your app name
 
 
@@ -13,7 +15,8 @@ class FileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = File
-        fields = ['id', 'name', 'size', 'extension', 'status', 'expiry_date', 'uploaded_date', 'download_link', 'uploaded_by', 'encryption_metadata']
+        fields = ['id', 'name', 'size', 'extension', 'status', 'expiry_date', 'uploaded_date', 'download_link',
+                  'uploaded_by', 'encryption_metadata']
 
     def get_uploaded_by(self, obj):
         return {
@@ -27,6 +30,7 @@ class FileSerializer(serializers.ModelSerializer):
             'key': obj.encryption_key if obj.encryption_key else None,
             'iv': list(obj.encryption_iv) if obj.encryption_iv else []
         }
+
 
 class UserStorageSerializer(serializers.ModelSerializer):
     allocated_storage = serializers.ReadOnlyField()
@@ -90,7 +94,8 @@ class RoleUpgradeRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RoleUpgradeRequest
-        fields = ['id', 'user_id', 'user_name', 'user_email', 'current_role', 'requested_role', 'status', 'request_date']
+        fields = ['id', 'user_id', 'user_name', 'user_email', 'current_role', 'requested_role', 'status',
+                  'request_date']
 
     def get_user_name(self, obj):
         return obj.user.get_full_name()

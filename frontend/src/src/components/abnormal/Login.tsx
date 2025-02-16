@@ -1,16 +1,15 @@
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useForm } from "react-hook-form"
+import {useEffect, useState} from "react"
+import {Button} from "@/components/ui/button"
+import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card"
+import {Input} from "@/components/ui/input"
+import {Label} from "@/components/ui/label"
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import {useForm} from "react-hook-form"
 import {useToast} from "../../hooks/use-toast.ts";
-import { useNavigate } from "react-router-dom"
-import { authService } from "@/services/auth"
-import { MFASetupDialog } from "./mfa/MFASetupDialog.tsx"
-import { MFAVerifyDialog } from "./mfa/MFAVerifyDialogProps.tsx"
-
+import {useNavigate} from "react-router-dom"
+import {authService} from "@/services/auth"
+import {MFASetupDialog} from "./mfa/MFASetupDialog.tsx"
+import {MFAVerifyDialog} from "./mfa/MFAVerifyDialogProps.tsx"
 
 
 export function Login() {
@@ -21,7 +20,7 @@ export function Login() {
     const regForm = useForm()
 
     const navigate = useNavigate();
-    const { toast } = useToast();
+    const {toast} = useToast();
 
     const [showMFAVerifyDialog, setShowMFAVerifyDialog] = useState(false);
     const [loginData, setLoginData] = useState<any>(null);
@@ -157,7 +156,7 @@ export function Login() {
                                 <Label htmlFor="username">Username</Label>
                                 <Input
                                     id="username"
-                                    {...loginForm.register("username", { required: "Username is required" })}
+                                    {...loginForm.register("username", {required: "Username is required"})}
                                 />
                                 {loginForm.formState.errors.username && (
                                     <p className="text-red-500">{loginForm.formState.errors.username.message as string}</p>
@@ -168,7 +167,7 @@ export function Login() {
                                 <Input
                                     id="password"
                                     type="password"
-                                    {...loginForm.register("password", { required: "Password is required" })}
+                                    {...loginForm.register("password", {required: "Password is required"})}
                                 />
                                 {loginForm.formState.errors.password && (
                                     <p className="text-red-500">{loginForm.formState.errors.password.message as string}</p>
@@ -195,7 +194,7 @@ export function Login() {
                                 <Label htmlFor="name">Name</Label>
                                 <Input
                                     id="name"
-                                    {...regForm.register("name", { required: "Name is required" })}
+                                    {...regForm.register("name", {required: "Name is required"})}
                                 />
                                 {regForm.formState.errors.name && (
                                     <p className="text-red-500">{regForm.formState.errors.name.message as string}</p>
@@ -206,7 +205,7 @@ export function Login() {
                                 <Input
                                     id="email"
                                     type="email"
-                                    {...regForm.register("email", { required: "Email is required" })}
+                                    {...regForm.register("email", {required: "Email is required"})}
                                 />
                                 {regForm.formState.errors.email && (
                                     <p className="text-red-500">{regForm.formState.errors.email.message as string}</p>
@@ -219,8 +218,8 @@ export function Login() {
                                     type="password"
                                     {...regForm.register("regPassword", {
                                         required: "Password is required",
-                                        minLength: { value: 6, message: "Password must be at least 6 characters" },
-                                        maxLength: { value: 18, message: "Password must be at most 18 characters" },
+                                        minLength: {value: 6, message: "Password must be at least 6 characters"},
+                                        maxLength: {value: 18, message: "Password must be at most 18 characters"},
                                     })}
                                     onChange={handlePasswordChange}
                                 />
@@ -228,9 +227,12 @@ export function Login() {
                                     <p className="text-red-500">{regForm.formState.errors.regPassword.message as string}</p>
                                 )}
                                 <div className="text-gray-500">
-                                    <p className={passwordValid.length ? "text-green-500" : "text-red-500"}>6-18 characters</p>
-                                    <p className={passwordValid.uppercase ? "text-green-500" : "text-red-500"}>One uppercase letter</p>
-                                    <p className={passwordValid.specialChar ? "text-green-500" : "text-red-500"}>One special character</p>
+                                    <p className={passwordValid.length ? "text-green-500" : "text-red-500"}>6-18
+                                        characters</p>
+                                    <p className={passwordValid.uppercase ? "text-green-500" : "text-red-500"}>One
+                                        uppercase letter</p>
+                                    <p className={passwordValid.specialChar ? "text-green-500" : "text-red-500"}>One
+                                        special character</p>
                                     <p className={passwordValid.digit ? "text-green-500" : "text-red-500"}>One digit</p>
                                 </div>
                             </div>

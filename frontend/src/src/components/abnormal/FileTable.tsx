@@ -51,7 +51,7 @@ export function FileTable({userRole, ownedFiles, sharedFiles, onRefresh}: FileTa
 
     const handleDownload = async (downloadLink: string, downloadName: string, encryption_metadata: any) => {
         try {
-            await fileService.downloadFile(downloadLink, downloadName, encryption_metadata );
+            await fileService.downloadFile(downloadLink, downloadName, encryption_metadata);
             toast({
                 title: "Success",
                 description: "File downloaded successfully",

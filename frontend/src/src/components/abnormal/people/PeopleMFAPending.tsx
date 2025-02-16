@@ -1,9 +1,9 @@
 // components/MFAPendingDrawer.tsx
-import { useEffect, useState } from "react";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { dashboardService } from "@/services/dashboard";
+import {useEffect, useState} from "react";
+import {Drawer, DrawerContent, DrawerHeader, DrawerTitle} from "@/components/ui/drawer";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
+import {Button} from "@/components/ui/button";
+import {dashboardService} from "@/services/dashboard";
 
 interface MFAPendingUser {
     id: number;
@@ -18,7 +18,7 @@ interface MFAPendingDrawerProps {
     onClose: () => void;
 }
 
-export function MFAPendingDrawer({ isOpen, onClose }: MFAPendingDrawerProps) {
+export function MFAPendingDrawer({isOpen, onClose}: MFAPendingDrawerProps) {
     const [users, setUsers] = useState<MFAPendingUser[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);

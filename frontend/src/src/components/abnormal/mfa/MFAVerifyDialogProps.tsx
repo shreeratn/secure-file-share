@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { authService } from "@/services/auth";
+import {useState} from "react";
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {Input} from "@/components/ui/input";
+import {Button} from "@/components/ui/button";
+import {useToast} from "@/hooks/use-toast";
+import {authService} from "@/services/auth";
 
 interface MFAVerifyDialogProps {
     isOpen: boolean;
@@ -11,9 +11,9 @@ interface MFAVerifyDialogProps {
     onSuccess: () => void;
 }
 
-export function MFAVerifyDialog({ isOpen, onClose, onSuccess }: MFAVerifyDialogProps) {
+export function MFAVerifyDialog({isOpen, onClose, onSuccess}: MFAVerifyDialogProps) {
     const [otp, setOtp] = useState("")
-    const { toast } = useToast()
+    const {toast} = useToast()
 
     const handleVerifyOTP = async () => {
         try {

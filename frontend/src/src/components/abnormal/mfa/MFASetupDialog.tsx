@@ -1,26 +1,19 @@
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import { MFADrawer } from "./MFADrawer.tsx"
-import { useNavigate } from "react-router-dom"
-import { authService } from "../../../services/auth.ts"
-import { useToast } from "@/hooks/use-toast"
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,} from "@/components/ui/dialog"
+import {Button} from "@/components/ui/button"
+import {useState} from "react"
+import {MFADrawer} from "./MFADrawer.tsx"
+import {useNavigate} from "react-router-dom"
+import {useToast} from "@/hooks/use-toast"
 
 interface MFASetupDialogProps {
     isOpen: boolean
     onClose: () => void
 }
 
-export function MFASetupDialog({ isOpen, onClose }: MFASetupDialogProps) {
+export function MFASetupDialog({isOpen, onClose}: MFASetupDialogProps) {
     const [isMFADrawerOpen, setIsMFADrawerOpen] = useState(false)
     const navigate = useNavigate()
-    const { toast } = useToast()
+    const {toast} = useToast()
 
     const handleCompleteLater = async () => {
         try {
@@ -62,7 +55,8 @@ export function MFASetupDialog({ isOpen, onClose }: MFASetupDialogProps) {
                         <DialogTitle>Complete MFA Setup</DialogTitle>
                         <DialogDescription>
                             To enhance your account security, we recommend setting up Multi-Factor Authentication (MFA).
-                            While you can complete this later, administrators may contact you to ensure this security measure is in place.
+                            While you can complete this later, administrators may contact you to ensure this security
+                            measure is in place.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-end space-x-2">

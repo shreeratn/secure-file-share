@@ -1,14 +1,14 @@
 // components/share-drawer.tsx
 "use client"
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
-import { Copy, Link2 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { Badge } from "@/components/ui/badge"
-import { fileService } from "@/services/files"
+import {useEffect, useState} from "react"
+import {Button} from "@/components/ui/button"
+import {Input} from "@/components/ui/input"
+import {Drawer, DrawerContent, DrawerHeader, DrawerTitle} from "@/components/ui/drawer"
+import {Copy, Link2} from "lucide-react"
+import {useToast} from "@/hooks/use-toast"
+import {Badge} from "@/components/ui/badge"
+import {fileService} from "@/services/files"
 
 interface ShareDrawerProps {
     file: any
@@ -16,8 +16,8 @@ interface ShareDrawerProps {
     onClose: () => void
 }
 
-export function ShareDrawer({ file, open, onClose }: ShareDrawerProps) {
-    const { toast } = useToast()
+export function ShareDrawer({file, open, onClose}: ShareDrawerProps) {
+    const {toast} = useToast()
     const [days, setDays] = useState(7)
     const [emails, setEmails] = useState<string[]>([])
     const [emailInput, setEmailInput] = useState('')
@@ -100,7 +100,7 @@ export function ShareDrawer({ file, open, onClose }: ShareDrawerProps) {
                 <div className="mx-auto w-full max-w-sm p-6">
                     <DrawerHeader>
                         <DrawerTitle className="flex items-center gap-2">
-                            <Link2 className="h-5 w-5" />
+                            <Link2 className="h-5 w-5"/>
                             Share File
                         </DrawerTitle>
                     </DrawerHeader>
@@ -161,7 +161,7 @@ export function ShareDrawer({ file, open, onClose }: ShareDrawerProps) {
                                         className="truncate"
                                     />
                                     <Button size="sm" onClick={handleCopy}>
-                                        <Copy className="h-4 w-4 mr-2" />
+                                        <Copy className="h-4 w-4 mr-2"/>
                                         Copy
                                     </Button>
                                 </div>

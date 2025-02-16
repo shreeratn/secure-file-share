@@ -59,8 +59,10 @@ export const FileUploadDrawer: React.FC<FileUploadDrawerProps> = ({
                     {file && (
                         <div className="mb-4 mt-4 space-y-2">
                             <p className="text-sm"><span className="font-medium">Name:</span> {file.name}</p>
-                            <p className="text-sm"><span className="font-medium">Size:</span> {(file.size / 1024 / 1024).toFixed(2)}MB</p>
-                            <p className="text-sm"><span className="font-medium">Type:</span> {file.name.split('.').pop()}</p>
+                            <p className="text-sm"><span
+                                className="font-medium">Size:</span> {(file.size / 1024 / 1024).toFixed(2)}MB</p>
+                            <p className="text-sm"><span
+                                className="font-medium">Type:</span> {file.name.split('.').pop()}</p>
                         </div>
                     )}
 

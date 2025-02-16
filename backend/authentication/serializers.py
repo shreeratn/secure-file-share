@@ -1,8 +1,10 @@
-from datetime import timedelta, datetime, timezone
-from rest_framework import serializers
-from .models import User
 import re
+from datetime import timedelta, datetime, timezone
+
 from django.core.validators import EmailValidator
+from rest_framework import serializers
+
+from .models import User
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -42,6 +44,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
 
+
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField()
@@ -59,6 +62,7 @@ class UserListSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'name', 'email', 'user_type', 'is_mfa_enabled', 'member_since')
 
+
 class UserRoleUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -68,6 +72,7 @@ class UserRoleUpdateSerializer(serializers.ModelSerializer):
         if value not in [User.UserType.GUEST, User.UserType.REGULAR, User.UserType.ADMIN]:
             raise serializers.ValidationError("Invalid user type")
         return value
+
 
 class MFAPendingUserSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='first_name')

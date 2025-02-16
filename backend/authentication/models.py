@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+
 class User(AbstractUser):
     class UserType(models.TextChoices):
         GUEST = 'guest', 'Guest'
@@ -16,7 +17,6 @@ class User(AbstractUser):
         choices=UserType.choices,
         default=UserType.GUEST
     )
-
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']

@@ -15,7 +15,7 @@ export default function AuthLanding() {
                 </h1>
             </div>
             <div className="w-2/5 flex justify-center items-center">
-            <Login></Login></div>
+                <Login></Login></div>
         </div>
     );
 }

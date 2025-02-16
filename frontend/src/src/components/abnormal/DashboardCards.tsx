@@ -1,11 +1,19 @@
 import {useMemo, useState} from "react"
 import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card"
-import {AlertTriangleIcon, DatabaseIcon, LinkIcon, Share2Icon, ShieldCheckIcon, UserCheckIcon, LockIcon} from "lucide-react"
+import {
+    AlertTriangleIcon,
+    DatabaseIcon,
+    LinkIcon,
+    LockIcon,
+    Share2Icon,
+    ShieldCheckIcon,
+    UserCheckIcon
+} from "lucide-react"
 import {Cell, Pie, PieChart} from "recharts"
 import {ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent} from "@/components/ui/chart"
 import {Progress} from "@/components/ui/progress"
 import {Button} from "@/components/ui/button"
-import { CardFooter } from "../ui/card"
+import {CardFooter} from "../ui/card"
 import {HyperText} from "../magicui/hyper-text.tsx";
 import {MFAPendingDrawer} from "./people/PeopleMFAPending.tsx";
 import UploadFile from "./UploadFile.tsx";
@@ -99,7 +107,7 @@ export function DashboardCards({data, onRefresh}: {
         Admin: 'text-emerald-500',
     }
 
-    const { toast } = useToast();
+    const {toast} = useToast();
 
     const handleRequestUpgrade = async () => {
         try {
@@ -190,7 +198,8 @@ export function DashboardCards({data, onRefresh}: {
                                         paddingAngle={0}
                                     >
                                         {storageData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={storageChartConfig[entry.category].color}/>
+                                            <Cell key={`cell-${index}`}
+                                                  fill={storageChartConfig[entry.category].color}/>
                                         ))}
                                     </Pie>
                                 </PieChart>
@@ -233,14 +242,15 @@ export function DashboardCards({data, onRefresh}: {
                         <LockedContent/>
                     ) :
                     (
-                       <CardContent>
+                        <CardContent>
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2">
                                     <span className="flex h-3 w-3 rounded-full bg-rose-500"/>
                                     <p>{data.securityAlerts.failedDecryptAttempts} Failed Decryption Attempts</p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className={`flex h-3 w-3 rounded-full ${data.securityAlerts.pendingMFASetups > 0 ? 'bg-yellow-500' : 'bg-green-500'}`}/>
+                                    <span
+                                        className={`flex h-3 w-3 rounded-full ${data.securityAlerts.pendingMFASetups > 0 ? 'bg-yellow-500' : 'bg-green-500'}`}/>
                                     {data.securityAlerts.pendingMFASetups > 0 ? (
                                         <Button
                                             variant="outline"
@@ -324,7 +334,7 @@ export function DashboardCards({data, onRefresh}: {
                     <LockedContent/>
                 ) : (
                     <CardContent>
-                        <UploadFile onSuccess={onRefresh} />
+                        <UploadFile onSuccess={onRefresh}/>
                     </CardContent>
                 )}
             </Card>

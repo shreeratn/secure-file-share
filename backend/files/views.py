@@ -1,15 +1,18 @@
-from django.http import FileResponse
-from rest_framework import viewsets, status
+import logging
+import uuid
+from datetime import datetime, timezone
+
+from authentication.models import User  # Add this import
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from datetime import datetime, timedelta, timezone
-import uuid
-from authentication.models import User  # Add this import
+
 from .models import File, UserStorage, RoleUpgradeRequest
-from .serializers import FileSerializer, UserStorageSerializer, FileUploadSerializer, RoleUpgradeRequestSerializer
-import logging
+from .serializers import FileSerializer, FileUploadSerializer, RoleUpgradeRequestSerializer
+
 logger = logging.getLogger('files')
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -34,6 +37,7 @@ def get_user_data(request):
 
     return Response(data)
 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_uploaded_files(request):
@@ -41,12 +45,14 @@ def get_uploaded_files(request):
     serializer = FileSerializer(files, many=True)
     return Response(serializer.data)
 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_shared_files(request):
     files = File.objects.filter(shared_with=request.user).select_related('uploaded_by')
     serializer = FileSerializer(files, many=True)
     return Response(serializer.data)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -73,7 +79,7 @@ def upload_file(request):
         max_size = 10485760 if request.user.user_type == User.UserType.ADMIN else 5242880
         if file.size > max_size:
             return Response({
-                'error': f'File size exceeds limit. Maximum size allowed is {max_size/1048576}MB'
+                'error': f'File size exceeds limit. Maximum size allowed is {max_size / 1048576}MB'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # Storage checks...
@@ -113,6 +119,7 @@ def upload_file(request):
         status=status.HTTP_400_BAD_REQUEST
     )
 
+
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_file(request, file_id):
@@ -129,6 +136,7 @@ def delete_file(request, file_id):
         return Response({'message': 'File deleted successfully'})
     except File.DoesNotExist:
         return Response({'error': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -152,8 +160,10 @@ def share_file(request, file_id):
     except File.DoesNotExist:
         return Response({'error': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
 
+
 from django.http import FileResponse
 import mimetypes
+
 
 @api_view(['GET'])
 def download_file(request, download_link):
@@ -180,7 +190,6 @@ def download_file(request, download_link):
         return Response({'error': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
-
 # Role requests
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -192,6 +201,7 @@ def get_role_requests(request):
     requests = RoleUpgradeRequest.objects.filter(status='pending')
     serializer = RoleUpgradeRequestSerializer(requests, many=True)
     return Response(serializer.data)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -224,6 +234,7 @@ def request_role_upgrade(request):
 
     return Response({'message': f'Upgrade request to {requested_role} submitted successfully'})
 
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def approve_role_upgrade(request, user_id):
@@ -248,6 +259,7 @@ def approve_role_upgrade(request, user_id):
         return Response({'message': 'Role upgrade approved successfully'})
     except RoleUpgradeRequest.DoesNotExist:
         return Response({'error': 'Request not found'}, status=status.HTTP_404_NOT_FOUND)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

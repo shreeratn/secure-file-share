@@ -4,7 +4,7 @@ import {useToast} from "@/hooks/use-toast";
 import {fileService} from "@/services/files.ts";
 import {Loader2} from "lucide-react"; // Add this import
 
-const UploadFile: React.FC<{ onSuccess?: () => Promise<void> }> = ({ onSuccess }) => {
+const UploadFile: React.FC<{ onSuccess?: () => Promise<void> }> = ({onSuccess}) => {
     const [file, setFile] = useState<File | null>(null);
     const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
     const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -42,7 +42,7 @@ const UploadFile: React.FC<{ onSuccess?: () => Promise<void> }> = ({ onSuccess }
             });
 
             if (status === 'public' && emails.length > 0) {
-                await fileService.shareFile(uploadedFile.id, { emails });
+                await fileService.shareFile(uploadedFile.id, {emails});
             }
 
             toast({

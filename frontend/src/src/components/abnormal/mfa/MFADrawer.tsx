@@ -4,12 +4,7 @@ import {useEffect, useState} from "react"
 import {useToast} from "@/hooks/use-toast"
 import {Copy} from "lucide-react"
 import {QRCodeSVG} from "qrcode.react";
-import {
-    Drawer,
-    DrawerContent,
-    DrawerOverlay,
-    DrawerPortal,
-} from "@/components/ui/drawer"
+import {Drawer, DrawerContent, DrawerOverlay, DrawerPortal,} from "@/components/ui/drawer"
 import {authService} from "../../../services/auth.ts";
 import {useNavigate} from "react-router-dom";
 
