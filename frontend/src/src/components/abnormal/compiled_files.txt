@@ -9,9 +9,11 @@ import { Input } from "@/components/ui/input"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { Copy, Link2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { Badge } from "@/components/ui/badge"
+import { fileService } from "@/services/files"
 
 interface ShareDrawerProps {
-    file: File
+    file: any
     open: boolean
     onClose: () => void
 }
@@ -19,8 +21,10 @@ interface ShareDrawerProps {
 export function ShareDrawer({ file, open, onClose }: ShareDrawerProps) {
     const { toast } = useToast()
     const [days, setDays] = useState(7)
+    const [emails, setEmails] = useState<string[]>([])
+    const [emailInput, setEmailInput] = useState('')
     const [error, setError] = useState<string | null>(null)
-    const [isSettingsSaved, setIsSettingsSaved] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
     const [shareLink, setShareLink] = useState("")
 
     const handleDaysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,7 +33,18 @@ export function ShareDrawer({ file, open, onClose }: ShareDrawerProps) {
         setError(null)
     }
 
-    const handleSave = () => {
+    const handleEmailAdd = () => {
+        const newEmails = emailInput.split(',')
+            .map(e => e.trim())
+            .filter(e => e.length > 0 && e.includes('@'))
+
+        if (newEmails.length === 0) return
+
+        setEmails([...emails, ...newEmails])
+        setEmailInput('')
+    }
+
+    const handleSave = async () => {
         if (days > 30) {
             setError("Expiration days cannot exceed 30")
             return
@@ -39,9 +54,27 @@ export function ShareDrawer({ file, open, onClose }: ShareDrawerProps) {
             return
         }
 
-        setShareLink(`https://your-app.com/share/${crypto.randomUUID()}?expires_in=${days}`)
-        setIsSettingsSaved(true)
-        setError(null)
+        setIsLoading(true)
+        try {
+            // Share the file with expiry days
+            const response = await fileService.shareFile(file.id, {
+                emails: emails
+            })
+
+            setShareLink(response.download_link || "")
+            toast({
+                title: "Success",
+                description: "File shared successfully",
+            })
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message || "Failed to share file",
+            })
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     const handleCopy = () => {
@@ -56,8 +89,9 @@ export function ShareDrawer({ file, open, onClose }: ShareDrawerProps) {
         if (!open) {
             // Reset state when drawer closes
             setDays(7)
+            setEmails([])
+            setEmailInput('')
             setError(null)
-            setIsSettingsSaved(false)
             setShareLink("")
         }
     }, [open])
@@ -73,68 +107,72 @@ export function ShareDrawer({ file, open, onClose }: ShareDrawerProps) {
                         </DrawerTitle>
                     </DrawerHeader>
 
-                    {!file.isShared && (
-                        <div className="space-y-4">
-                            {!isSettingsSaved ? (
+                    <div className="space-y-4">
+                        {!shareLink ? (
+                            <div className="space-y-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">
                                         Set Expiration Days
                                         <span className="text-muted-foreground ml-1">(max 30)</span>
                                     </label>
-                                    <div className="flex items-center gap-2">
-                                        <Input
-                                            type="number"
-                                            min="1"
-                                            max="30"
-                                            value={days}
-                                            onChange={handleDaysChange}
-                                            className="w-24"
-                                        />
-                                        <Button onClick={handleSave}>
-                                            Save
-                                        </Button>
-                                    </div>
-                                    {error && <p className="text-sm text-red-500">{error}</p>}
+                                    <Input
+                                        type="number"
+                                        min="1"
+                                        max="30"
+                                        value={days}
+                                        onChange={handleDaysChange}
+                                        className="w-24"
+                                    />
                                 </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <Input
-                                            value={shareLink}
-                                            readOnly
-                                            className="truncate max-w-[300px]"
-                                        />
-                                        <Button size="sm" onClick={handleCopy}>
-                                            <Copy className="h-4 w-4 mr-2" />
-                                            Copy
-                                        </Button>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground">
-                                        This link will expire after {days} day{days !== 1 ? 's' : ''}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    )}
 
-                    {file.isShared && (
-                        <div className="space-y-2 mt-4">
-                            <div className="flex items-center gap-2">
-                                <Input
-                                    value={shareLink}
-                                    readOnly
-                                    className="truncate max-w-[300px]"
-                                />
-                                <Button size="sm" onClick={handleCopy}>
-                                    <Copy className="h-4 w-4 mr-2" />
-                                    Copy
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Share With (Optional)</label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="Enter emails (comma separated)"
+                                            value={emailInput}
+                                            onChange={(e) => setEmailInput(e.target.value)}
+                                        />
+                                        <Button onClick={handleEmailAdd}>Add</Button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {emails.map((email, index) => (
+                                            <Badge key={index} variant="secondary">
+                                                {email}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {error && <p className="text-sm text-red-500">{error}</p>}
+
+                                <Button
+                                    onClick={handleSave}
+                                    disabled={isLoading}
+                                    className="w-full"
+                                >
+                                    {isLoading ? "Sharing..." : "Share"}
                                 </Button>
                             </div>
-                            <p className="text-sm text-muted-foreground">
-                                This file is already shared publicly
-                            </p>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        value={shareLink}
+                                        readOnly
+                                        className="truncate"
+                                    />
+                                    <Button size="sm" onClick={handleCopy}>
+                                        <Copy className="h-4 w-4 mr-2" />
+                                        Copy
+                                    </Button>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    This link will expire after {days} day{days !== 1 ? 's' : ''}
+                                </p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </DrawerContent>
         </Drawer>
@@ -408,18 +446,18 @@ export function Login() {
 //filepath: Dashboard.tsx
 //content:
 // app/dashboard/page.tsx
-import { FileTable } from "./FileTable"
-import { DashboardCards, DashboardData } from "./DashboardCards"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import {FileTable} from "./FileTable"
+import {DashboardCards, DashboardData} from "./DashboardCards"
+import {Button} from "@/components/ui/button"
+import {Card, CardContent} from "@/components/ui/card"
 import {AuroraText} from "../magicui/aurora-text.tsx";
-import { useNavigate } from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
 import {authService} from "../../services/auth.ts";
 import {MFADrawer} from "./mfa/MFADrawer.tsx";
 import {useState} from "react";
-import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
-import { fileService } from "@/services/files";
+import {Loader2} from "lucide-react";
+import {useEffect} from "react";
+import {fileService} from "@/services/files";
 
 
 interface FileData {
@@ -498,6 +536,24 @@ export default function DashboardPage() {
         );
     }
 
+    const refreshData = async () => {
+        try {
+            const [dashboardData, uploadedFiles, sharedFilesData] = await Promise.all([
+                fileService.getDashboardData(),
+                fileService.getUploadedFiles(),
+                fileService.getSharedFiles()
+            ]);
+            setDashboardData(dashboardData);
+            setOwnedFiles(uploadedFiles);
+            setSharedFiles(sharedFilesData);
+        } catch (error) {
+            console.error('Failed to fetch data:', error);
+        }
+    };
+
+    console.log(dashboardData);
+
+
     return (
         <div className="flex-col md:flex">
             <div className="flex-1 space-y-4 p-8 pt-6">
@@ -506,7 +562,8 @@ export default function DashboardPage() {
                         <h1 className="text-3xl font-bold tracking-tighter">
                             Secure File Share by <AuroraText>Shree Ratn</AuroraText>
                         </h1>
-                        <div className="flex gap-4">
+                        <div className="flex items-center gap-4">
+                        <span className="text-sm text-gray-500">Hey, {dashboardData!.name}</span>
                             {!isMFAenabled && (
                                 <Button
                                     variant="outline"
@@ -522,11 +579,12 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                {dashboardData && <DashboardCards data={dashboardData} />}
+                {dashboardData && <DashboardCards data={dashboardData} onRefresh={refreshData}/>}
                 <FileTable
                     userRole={dashboardData?.userRole || 'Guest'}
                     ownedFiles={ownedFiles}
                     sharedFiles={sharedFiles}
+                    onRefresh={refreshData}
                 />
 
                 {isMFADrawerOpen && (<MFADrawer
@@ -582,10 +640,11 @@ export interface File {
 interface FileTableProps {
     userRole: 'Guest' | 'Regular' | 'Admin'
     ownedFiles: any
-    sharedFiles: any
+    sharedFiles: any,
+    onRefresh: () => Promise<void>
 }
 
-export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
+export function FileTable({userRole, ownedFiles, sharedFiles, onRefresh}: FileTableProps) {
     const [activeTab, setActiveTab] = useState<'owned' | 'shared'>(userRole === 'Guest' ? 'shared' : 'owned')
     const [rowSelection, setRowSelection] = useState({})
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -610,24 +669,30 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
     };
 
     const handleDelete = async (fileId: string) => {
-        setIsDeleting(true);
+        setIsDeleting(true)
         try {
-            await fileService.deleteFile(fileId);
+            await fileService.deleteFile(fileId)
             toast({
                 title: "Success",
                 description: "File deleted successfully",
-            });
-            window.location.reload();
+            })
+            await onRefresh() // Use the refresh function instead of page reload
         } catch (error: any) {
             toast({
                 variant: "destructive",
                 title: "Error",
                 description: error.message || "Failed to delete file",
-            });
+            })
         } finally {
-            setIsDeleting(false);
+            setIsDeleting(false)
         }
-    };
+    }
+
+    const handleShareSuccess = async () => {
+        await onRefresh() // Refresh data after successful share
+        setShareDrawerOpen(false)
+        setSelectedFile(null)
+    }
 
     function formatFileSize(size: number): string {
         if (size >= 1024 * 1024 * 300) {
@@ -898,6 +963,7 @@ export function FileTable({userRole, ownedFiles, sharedFiles}: FileTableProps) {
                         setShareDrawerOpen(false)
                         setSelectedFile(null)
                     }}
+                    onSuccess={handleShareSuccess}
                 />
             )}
         </div>
@@ -920,6 +986,9 @@ import { CardFooter } from "../ui/card"
 import {HyperText} from "../magicui/hyper-text.tsx";
 import {MFAPendingDrawer} from "./people/PeopleMFAPending.tsx";
 import UploadFile from "./UploadFile.tsx";
+import {RoleApprovalDrawer} from "./people/RoleApprovalDrawer.tsx";
+import {fileService} from "@/services/files.ts";
+import {useToast} from "@/hooks/use-toast.ts";
 
 // Chart configuration
 const storageChartConfig = {
@@ -957,7 +1026,8 @@ export interface DashboardData {
         admins: number
         regularUsers: number
         guests: number
-    }
+    },
+    name: string
 }
 
 const STORAGE_LIMIT_GB = 1
@@ -983,7 +1053,10 @@ const formatStorage = (valueGB: number) => {
     return `${Math.round(valueMB)}MB`
 }
 
-export function DashboardCards({data}: { data: DashboardData }) {
+export function DashboardCards({data, onRefresh}: {
+    data: DashboardData,
+    onRefresh?: () => Promise<void>
+}) {
     const storageData = useMemo(() => [
         {category: "used", value: data.usedStorageGB},
         {category: "free", value: STORAGE_LIMIT_GB - data.usedStorageGB},
@@ -995,12 +1068,34 @@ export function DashboardCards({data}: { data: DashboardData }) {
     }), [data.usedStorageGB])
 
     const [peopleDrawerOpen, setPeopleDrawerOpen] = useState(false)
+    const [roleDrawerOpen, setRoleDrawerOpen] = useState(false)
 
     const roleColors = {
         Guest: 'text-gray-500',
         Regular: 'text-blue-500',
         Admin: 'text-emerald-500',
     }
+
+    const { toast } = useToast();
+
+    const handleRequestUpgrade = async () => {
+        try {
+            // TODO: Add API endpoint in fileService
+            await fileService.requestRoleUpgrade();
+            toast({
+                title: "Success",
+                description: data.userRole === 'Guest'
+                    ? "Request to upgrade to Regular user sent successfully"
+                    : "Request to upgrade to Admin sent successfully"
+            });
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message || "Failed to request upgrade"
+            });
+        }
+    };
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1198,18 +1293,60 @@ export function DashboardCards({data}: { data: DashboardData }) {
 
             {/*Upload Card*/}
             <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : "min-w-[150px]"}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardHeader className="flex-row items-center justify-between">
                     <CardTitle className="text-sm font-medium">Upload Files</CardTitle>
                     {data.userRole === 'Guest' && <LockIcon className="h-4 w-4 text-red-500"/>}
                 </CardHeader>
                 {data.userRole === 'Guest' ? (
-                        <LockedContent/>
-                    ) :
-                    (
-                        <CardContent>
-                            <UploadFile />
-                        </CardContent>)}
+                    <LockedContent/>
+                ) : (
+                    <CardContent>
+                        <UploadFile onSuccess={onRefresh} />
+                    </CardContent>
+                )}
             </Card>
+
+            {/* Role Upgrade Card */}
+            <Card className="min-w-[150px]">
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="text-sm font-medium">Role Management</CardTitle>
+                    <UserCheckIcon className="h-4 w-4 text-indigo-500"/>
+                </CardHeader>
+                <CardContent>
+                    {data.userRole === 'Admin' ? (
+                        <Button
+                            onClick={() => setRoleDrawerOpen(true)}
+                            className="w-full"
+                            variant="outline"
+                        >
+                            Check Approval Requests
+                        </Button>
+                    ) : (
+                        <Button
+                            onClick={() => handleRequestUpgrade()}
+                        >
+                            Request Upgrade to {data.userRole === 'Guest' ? 'Regular' : 'Admin'}
+                        </Button>
+                    )}
+                </CardContent>
+                <CardFooter className="text-xs text-muted-foreground">
+                    {data.userRole !== 'Admin' && (
+                        <>
+                            {data.userRole === 'Guest'
+                                ? "Upgrade to Regular user for more features"
+                                : "Request Admin privileges for full control"}
+                        </>
+                    )}
+                </CardFooter>
+            </Card>
+
+            {roleDrawerOpen && (
+                <RoleApprovalDrawer
+                    isOpen={roleDrawerOpen}
+                    onClose={() => setRoleDrawerOpen(false)}
+                />
+            )}
+
 
             {/*People drawer for pending MFA*/}
             {peopleDrawerOpen && (
@@ -1260,7 +1397,7 @@ import {useToast} from "@/hooks/use-toast";
 import {fileService} from "@/services/files.ts";
 import {Loader2} from "lucide-react"; // Add this import
 
-const UploadFile: React.FC = () => {
+const UploadFile: React.FC<{ onSuccess?: () => Promise<void> }> = ({ onSuccess }) => {
     const [file, setFile] = useState<File | null>(null);
     const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
     const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -1291,14 +1428,12 @@ const UploadFile: React.FC = () => {
 
         setIsUploading(true);
         try {
-            // First upload the file
             const uploadedFile = await fileService.uploadFile({
                 file,
                 status,
                 expiry_days: status === 'public' ? expiryDays : undefined
             });
 
-            // If public and emails provided, share with those users
             if (status === 'public' && emails.length > 0) {
                 await fileService.shareFile(uploadedFile.id, { emails });
             }
@@ -1308,11 +1443,10 @@ const UploadFile: React.FC = () => {
                 description: "File uploaded successfully!",
             });
 
-            handleCancel(); // Reset and close drawer
-            setIsRefreshing(true);
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
+            handleCancel();
+            if (onSuccess) {
+                await onSuccess(); // Call the refresh function
+            }
         } catch (error: any) {
             toast({
                 variant: "destructive",
@@ -1918,6 +2052,174 @@ export function MFAPendingDrawer({ isOpen, onClose }: MFAPendingDrawerProps) {
             </DrawerContent>
         </Drawer>
     );
+}
+
+
+==================================================
+
+//filepath: people/RoleApprovalDrawer.tsx
+//content:
+// components/role/RoleApprovalDrawer.tsx
+import { useState, useEffect } from "react"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { useToast } from "@/hooks/use-toast"
+import { fileService } from "@/services/files"
+import {cn} from "../../../lib/utils.ts";
+
+interface RoleRequest {
+    user_id: number;
+    id: number
+    user_name: string
+    user_email: string
+    current_role: string
+    requested_role: string
+    request_date: string
+}
+
+interface RoleApprovalDrawerProps {
+    isOpen: boolean
+    onClose: () => void
+    onSuccess?: () => Promise<void>
+}
+
+export function RoleApprovalDrawer({ isOpen, onClose, onSuccess }: RoleApprovalDrawerProps) {
+    const [requests, setRequests] = useState<RoleRequest[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const { toast } = useToast()
+
+    const fetchRequests = async () => {
+        try {
+            const data = await fileService.getRoleRequests()
+            setRequests(data)
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message || "Failed to fetch role requests"
+            })
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchRequests()
+        }
+    }, [isOpen])
+
+    const handleApprove = async (userId: number, role: 'regular' | 'admin') => {
+        try {
+            await fileService.approveRoleUpgrade(userId, role)
+            toast({
+                title: "Success",
+                description: "Role upgrade approved successfully"
+            })
+            await fetchRequests() // Refresh the list
+            if (onSuccess) await onSuccess()
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message || "Failed to approve upgrade"
+            })
+        }
+    }
+
+    const handleDowngrade = async (userId: number) => {
+        try {
+            await fileService.downgradeToGuest(userId)
+            toast({
+                title: "Success",
+                description: "User downgraded to guest successfully"
+            })
+            await fetchRequests() // Refresh the list
+            if (onSuccess) await onSuccess()
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message || "Failed to downgrade user"
+            })
+        }
+    }
+
+    return (
+        <Drawer open={isOpen} onOpenChange={onClose}>
+            <DrawerContent className="h-[80vh]">
+                <DrawerHeader>
+                    <DrawerTitle>Role Approval Requests</DrawerTitle>
+                </DrawerHeader>
+                <div className="p-4 overflow-auto">
+                    {isLoading ? (
+                        <div className="flex justify-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        </div>
+                    ) : requests.length === 0 ? (
+                        <p className="text-center text-muted-foreground">No pending requests</p>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Current Role</TableHead>
+                                    <TableHead>Requested Role</TableHead>
+                                    <TableHead>Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {requests.map((request) => (
+                                    <TableRow key={request.user_id}>
+                                        <TableCell>{request.user_name}</TableCell>
+                                        <TableCell>{request.user_email}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline" className={cn({
+                                                "text-gray-500": request.current_role === "guest",
+                                                "text-blue-500": request.current_role === "regular",
+                                                "text-red-500": request.current_role === "admin"
+                                            })}>
+                                                {request.current_role}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant="secondary" className={cn({
+                                                "text-gray-500": request.requested_role === "guest",
+                                                "text-blue-500": request.requested_role === "regular",
+                                                "text-red-500": request.requested_role === "admin"
+                                            })}>
+                                                {request.requested_role}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="space-x-2">
+                                            <Button
+                                                size="sm"
+                                                onClick={() => handleApprove(request.user_id, request.requested_role as 'regular' | 'admin')}
+                                                disabled={request.current_role === request.requested_role || request.current_role === "admin"}
+                                            >
+                                                Approve
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                onClick={() => handleDowngrade(request.user_id)}
+                                                disabled={request.current_role === "guest"}
+                                            >
+                                                Downgrade to Guest
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </div>
+            </DrawerContent>
+        </Drawer>
+    )
 }
 
 

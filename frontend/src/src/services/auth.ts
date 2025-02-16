@@ -150,3 +150,18 @@ export const authService = {
         }
     }
 };
+
+export const setupAxiosInterceptors = () => {
+    axios.interceptors.response.use(
+        (response) => response,
+        (error) => {
+            if (error.response?.status === 401) {
+                // Clear all auth data
+                localStorage.clear();
+                // Redirect to login
+                window.location.href = '/login';
+            }
+            return Promise.reject(error);
+        }
+    );
+};
