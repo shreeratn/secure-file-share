@@ -49,7 +49,8 @@ export interface DashboardData {
         admins: number
         regularUsers: number
         guests: number
-    }
+    },
+    name: string
 }
 
 const STORAGE_LIMIT_GB = 1
@@ -315,7 +316,7 @@ export function DashboardCards({data, onRefresh}: {
 
             {/*Upload Card*/}
             <Card className={data.userRole === 'Guest' ? LOCKED_CARD_CLASS : "min-w-[150px]"}>
-                <CardHeader>
+                <CardHeader className="flex-row items-center justify-between">
                     <CardTitle className="text-sm font-medium">Upload Files</CardTitle>
                     {data.userRole === 'Guest' && <LockIcon className="h-4 w-4 text-red-500"/>}
                 </CardHeader>
@@ -330,7 +331,7 @@ export function DashboardCards({data, onRefresh}: {
 
             {/* Role Upgrade Card */}
             <Card className="min-w-[150px]">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-sm font-medium">Role Management</CardTitle>
                     <UserCheckIcon className="h-4 w-4 text-indigo-500"/>
                 </CardHeader>
@@ -346,7 +347,6 @@ export function DashboardCards({data, onRefresh}: {
                     ) : (
                         <Button
                             onClick={() => handleRequestUpgrade()}
-                            className="w-full"
                         >
                             Request Upgrade to {data.userRole === 'Guest' ? 'Regular' : 'Admin'}
                         </Button>

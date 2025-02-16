@@ -17,6 +17,7 @@ def get_user_data(request):
     storage = UserStorage.objects.get_or_create(user=user)[0]
 
     data = {
+        'name': user.first_name,
         'total_files_shared': File.objects.filter(uploaded_by=user).count(),
         'used_storage': storage.used_storage,
         'allocated_storage': storage.allocated_storage,

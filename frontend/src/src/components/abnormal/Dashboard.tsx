@@ -1,16 +1,16 @@
 // app/dashboard/page.tsx
-import { FileTable } from "./FileTable"
-import { DashboardCards, DashboardData } from "./DashboardCards"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import {FileTable} from "./FileTable"
+import {DashboardCards, DashboardData} from "./DashboardCards"
+import {Button} from "@/components/ui/button"
+import {Card, CardContent} from "@/components/ui/card"
 import {AuroraText} from "../magicui/aurora-text.tsx";
-import { useNavigate } from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
 import {authService} from "../../services/auth.ts";
 import {MFADrawer} from "./mfa/MFADrawer.tsx";
 import {useState} from "react";
-import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
-import { fileService } from "@/services/files";
+import {Loader2} from "lucide-react";
+import {useEffect} from "react";
+import {fileService} from "@/services/files";
 
 
 interface FileData {
@@ -104,6 +104,8 @@ export default function DashboardPage() {
         }
     };
 
+    console.log(dashboardData);
+
 
     return (
         <div className="flex-col md:flex">
@@ -113,7 +115,8 @@ export default function DashboardPage() {
                         <h1 className="text-3xl font-bold tracking-tighter">
                             Secure File Share by <AuroraText>Shree Ratn</AuroraText>
                         </h1>
-                        <div className="flex gap-4">
+                        <div className="flex items-center gap-4">
+                        <span className="text-sm text-gray-500">Hey, {dashboardData!.name}</span>
                             {!isMFAenabled && (
                                 <Button
                                     variant="outline"
@@ -129,7 +132,7 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                {dashboardData && <DashboardCards data={dashboardData} onRefresh={refreshData} />}
+                {dashboardData && <DashboardCards data={dashboardData} onRefresh={refreshData}/>}
                 <FileTable
                     userRole={dashboardData?.userRole || 'Guest'}
                     ownedFiles={ownedFiles}

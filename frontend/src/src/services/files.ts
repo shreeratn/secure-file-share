@@ -43,6 +43,7 @@ interface DashboardApiResponse {
     incomplete_mfa?: number;
     encryption_health?: number;
     failed_decryption_alerts?: number;
+    name: string;
 }
 
 // Transformation function
@@ -77,6 +78,7 @@ const transformToDashboardData = (apiData: DashboardApiResponse): DashboardData 
                 regularUsers: 0,
                 guests: 0,
             },
+            name: apiData.name
         };
     }
 
@@ -106,6 +108,7 @@ const transformToDashboardData = (apiData: DashboardApiResponse): DashboardData 
             regularUsers: 0,
             guests: 0,
         },
+        name: apiData.name
     };
 };
 
