@@ -1,10 +1,16 @@
 import os
 
+
 def compile_files_to_txt():
+    # Ask the user for the output file name
+    output_file = input("Please enter the output file name: ")
+
+    # Add .txt extension if not provided
+    if not output_file.endswith('.txt'):
+        output_file += '.txt'
+
     # Get the current directory where the script is running
     current_dir = os.getcwd()
-    # Name of the output file
-    output_file = "compiled_files.txt"
 
     try:
         with open(output_file, 'w', encoding='utf-8') as outfile:
@@ -32,16 +38,17 @@ def compile_files_to_txt():
                             # Write the file contents
                             outfile.write(infile.read())
                             # Add a separator between files
-                            outfile.write("\n\n" + "="*50 + "\n\n")
+                            outfile.write("\n\n" + "=" * 50 + "\n\n")
                     except Exception as e:
                         outfile.write(f"//filepath: {rel_path}\n")
                         outfile.write(f"Error reading file: {str(e)}\n\n")
-                        outfile.write("="*50 + "\n\n")
+                        outfile.write("=" * 50 + "\n\n")
 
         print(f"Successfully created {output_file}")
 
     except Exception as e:
         print(f"An error occurred: {str(e)}")
+
 
 if __name__ == "__main__":
     compile_files_to_txt()

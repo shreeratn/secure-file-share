@@ -1,0 +1,40 @@
+### ERROR 2025-02-16 06:07:18,635 views 33 281472938078624 === Upload File View Started ===
+### ERROR 2025-02-16 06:07:18,637 views 33 281472938078624 Request Data: <QueryDict: {'status': ['private'], 'encryption_metadata': ['{"iv":[179,221,154,85,44,193,110,28,141,8,142,39,165,65,17,133],"key":"sobpsG8QxtGg9d3RkivPYL/3o9kJe+tz0bXfwgj9mmE="}'], 'file': [<InMemoryUploadedFile: Screenshot 2022-09-21 at 9.44.57 PM.png (image/png)>]}>
+### ERROR 2025-02-16 06:07:18,639 views 33 281472938078624 File name: Screenshot 2022-09-21 at 9.44.57 PM.png, Size: 470041
+### ERROR 2025-02-16 06:07:18,646 views 33 281472938078624 Error uploading file: Got a `TypeError` when calling `File.objects.create()`. This may be because you have a writable field on the serializer class that is not a valid argument to `File.objects.create()`. You may need to make the field read-only, or override the FileUploadSerializer.create() method to handle this correctly.
+Original exception was:
+ Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/serializers.py", line 962, in create
+    instance = ModelClass._default_manager.create(**validated_data)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/db/models/query.py", line 677, in create
+    obj = self.model(**kwargs)
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/db/models/base.py", line 567, in __init__
+    raise TypeError(
+TypeError: File() got unexpected keyword arguments: 'expiry_days', 'encryption_metadata'
+
+### ERROR 2025-02-16 06:09:48,185 views 41 281473390080416 === Upload File View Started ===
+### ERROR 2025-02-16 06:09:48,232 views 41 281473390080416 Request Data: <QueryDict: {'status': ['private'], 'encryption_metadata': ['{"iv":[77,216,231,251,103,158,73,109,138,192,234,153,114,33,148,170],"key":"Zc7Zvwzn1Mn3Wmh28VTviDe3ma4h7hfC83xecqqaGwk="}'], 'file': [<TemporaryUploadedFile: Screenshot 2022-09-10 at 3.43.05 PM.png (image/png)>]}>
+### ERROR 2025-02-16 06:09:48,233 views 41 281473390080416 File name: Screenshot 2022-09-10 at 3.43.05 PM.png, Size: 9058913
+### ERROR 2025-02-16 06:09:48,234 serializers 41 281473390080416 === Starting file upload ===
+### ERROR 2025-02-16 06:09:48,234 serializers 41 281473390080416 Full validated_data: {'file': <TemporaryUploadedFile: Screenshot 2022-09-10 at 3.43.05 PM.png (image/png)>, 'status': 'private', 'expiry_days': 7, 'encryption_metadata': {'iv': [77, 216, 231, 251, 103, 158, 73, 109, 138, 192, 234, 153, 114, 33, 148, 170], 'key': 'Zc7Zvwzn1Mn3Wmh28VTviDe3ma4h7hfC83xecqqaGwk='}}
+### ERROR 2025-02-16 06:09:48,234 serializers 41 281473390080416 Encryption metadata: {'iv': [77, 216, 231, 251, 103, 158, 73, 109, 138, 192, 234, 153, 114, 33, 148, 170], 'key': 'Zc7Zvwzn1Mn3Wmh28VTviDe3ma4h7hfC83xecqqaGwk='}
+### ERROR 2025-02-16 06:09:48,288 views 41 281473390080416 === File Upload Successful ===
+### ERROR 2025-02-16 06:12:57,563 views 55 281473251668384 === Upload File View Started ===
+### ERROR 2025-02-16 06:12:57,565 views 55 281473251668384 Request Data: <QueryDict: {'status': ['private'], 'encryption_metadata': ['{"iv":[117,70,40,152,148,3,28,149,247,135,125,41,77,186,110,208],"key":"hw6RkNAY4I+qUyDGKVmd+wNMAxkCJF9HyZx4qg2vVcA="}'], 'file': [<InMemoryUploadedFile: Screenshot 2022-09-21 at 9.44.57 PM.png (image/png)>]}>
+### ERROR 2025-02-16 06:12:57,566 views 55 281473251668384 File name: Screenshot 2022-09-21 at 9.44.57 PM.png, Size: 470041
+### ERROR 2025-02-16 06:12:57,568 serializers 55 281473251668384 === Starting file upload ===
+### ERROR 2025-02-16 06:12:57,568 serializers 55 281473251668384 Full validated_data: {'file': <InMemoryUploadedFile: Screenshot 2022-09-21 at 9.44.57 PM.png (image/png)>, 'status': 'private', 'expiry_days': 7, 'encryption_metadata': {'iv': [117, 70, 40, 152, 148, 3, 28, 149, 247, 135, 125, 41, 77, 186, 110, 208], 'key': 'hw6RkNAY4I+qUyDGKVmd+wNMAxkCJF9HyZx4qg2vVcA='}}
+### ERROR 2025-02-16 06:12:57,568 serializers 55 281473251668384 Encryption metadata: {'iv': [117, 70, 40, 152, 148, 3, 28, 149, 247, 135, 125, 41, 77, 186, 110, 208], 'key': 'hw6RkNAY4I+qUyDGKVmd+wNMAxkCJF9HyZx4qg2vVcA='}
+### ERROR 2025-02-16 06:12:57,587 views 55 281473251668384 === File Upload Successful ===
+### ERROR 2025-02-16 06:16:18,168 views 55 281472887878048 === Upload File View Started ===
+### ERROR 2025-02-16 06:16:18,198 views 55 281472887878048 Request Data: <QueryDict: {'status': ['private'], 'encryption_metadata': ['{"iv":[152,72,137,48,200,101,235,163,192,250,217,159,173,21,205,123],"key":"u4QW60cyuPqLnVePTdBFyGCjGZI+pZleZtyY7SIWYNQ="}'], 'file': [<TemporaryUploadedFile: Screenshot 2024-11-06 at 6.43.00PM.png (image/png)>]}>
+### ERROR 2025-02-16 06:16:18,199 views 55 281472887878048 File name: Screenshot 2024-11-06 at 6.43.00PM.png, Size: 5771509
+### ERROR 2025-02-16 06:16:18,201 serializers 55 281472887878048 === Starting file upload ===
+### ERROR 2025-02-16 06:16:18,201 serializers 55 281472887878048 Full validated_data: {'file': <TemporaryUploadedFile: Screenshot 2024-11-06 at 6.43.00PM.png (image/png)>, 'status': 'private', 'expiry_days': 7, 'encryption_metadata': {'iv': [152, 72, 137, 48, 200, 101, 235, 163, 192, 250, 217, 159, 173, 21, 205, 123], 'key': 'u4QW60cyuPqLnVePTdBFyGCjGZI+pZleZtyY7SIWYNQ='}}
+### ERROR 2025-02-16 06:16:18,201 serializers 55 281472887878048 Encryption metadata: {'iv': [152, 72, 137, 48, 200, 101, 235, 163, 192, 250, 217, 159, 173, 21, 205, 123], 'key': 'u4QW60cyuPqLnVePTdBFyGCjGZI+pZleZtyY7SIWYNQ='}
+### ERROR 2025-02-16 06:16:18,232 views 55 281472887878048 === File Upload Successful ===

@@ -30,7 +30,8 @@ export interface File {
     sharedAt?: Date
     uploaded_date?: string
     status?: string,
-    download_link: string
+    download_link: string,
+    encryption_metadata: any
 }
 
 interface FileTableProps {
@@ -48,9 +49,9 @@ export function FileTable({userRole, ownedFiles, sharedFiles, onRefresh}: FileTa
     const [isDeleting, setIsDeleting] = useState(false);
     const {toast} = useToast();
 
-    const handleDownload = async (downloadLink: string, downloadName: string) => {
+    const handleDownload = async (downloadLink: string, downloadName: string, encryption_metadata: any) => {
         try {
-            await fileService.downloadFile(downloadLink, downloadName);
+            await fileService.downloadFile(downloadLink, downloadName, encryption_metadata );
             toast({
                 title: "Success",
                 description: "File downloaded successfully",
@@ -188,7 +189,10 @@ export function FileTable({userRole, ownedFiles, sharedFiles, onRefresh}: FileTa
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleDownload(row.original.download_link, row.original.name.split('.').slice(0, -1).join('.'))}>
+                                <DropdownMenuItem onClick={() => handleDownload(
+                                    row.original.download_link,
+                                    row.original.name,
+                                    row.original.encryption_metadata)}>
                                     Download
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => {
@@ -260,7 +264,10 @@ export function FileTable({userRole, ownedFiles, sharedFiles, onRefresh}: FileTa
             id: "download",
             cell: ({row}) => (
                 <Button variant="ghost" size="sm"
-                        onClick={() => handleDownload(row.original.download_link, row.original.name.split('.').slice(0, -1).join('.'))}
+                        onClick={() => handleDownload(
+                            row.original.download_link,
+                            row.original.name,
+                            row.original.encryption_metadata)}
                 >
                     <Download className="h-4 w-4 mr-2"/>
                     Download

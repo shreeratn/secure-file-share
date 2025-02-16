@@ -1,0 +1,1117 @@
+//filepath: dashboard.ts
+//content:
+import axios from "axios";
+
+interface MFAPendingUser {
+    id: number;
+    name: string;
+    email: string;
+    user_since: string;
+    days_left: number;
+}
+
+const API_BASE_URL = 'http://localhost:8000/api/auth';
+
+
+export const dashboardService = {
+    getMFAPendingUsers: async (): Promise<MFAPendingUser[]> => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/mfa-pending/`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 403) {
+                throw new Error('Only admin users can access this data');
+            }
+            throw new Error('Failed to fetch MFA pending users');
+        }
+    },
+};
+
+
+==================================================
+
+//filepath: compiled_files.txt
+//content:
+//filepath: dashboard.ts
+//content:
+import axios from "axios";
+
+interface MFAPendingUser {
+    id: number;
+    name: string;
+    email: string;
+    user_since: string;
+    days_left: number;
+}
+
+const API_BASE_URL = 'http://localhost:8000/api/auth';
+
+
+export const dashboardService = {
+    getMFAPendingUsers: async (): Promise<MFAPendingUser[]> => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/mfa-pending/`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 403) {
+                throw new Error('Only admin users can access this data');
+            }
+            throw new Error('Failed to fetch MFA pending users');
+        }
+    },
+};
+
+
+==================================================
+
+//filepath: files.ts
+//content:
+import axios from 'axios';
+import {DashboardData} from "../components/abnormal/DashboardCards.tsx";
+
+const API_BASE_URL = 'http://localhost:8000/api/files';
+
+// Interfaces
+interface UserData {
+    total_files_shared: number;
+    used_storage: number;
+    allocated_storage?: number;
+    current_role: 'guest' | 'regular' | 'admin';
+    incomplete_mfa?: number;
+    encryption_health?: number;
+    failed_decryption_alerts?: number;
+}
+
+interface FileData {
+    id: number;
+    name: string;
+    size: number;
+    extension: string;
+    status: 'private' | 'public';
+    expiry_date: string;
+    uploaded_date: string;
+    download_link: string | null;
+}
+
+interface UploadFileRequest {
+    file: File;
+    status: 'private' | 'public';
+    expiry_days?: number;
+}
+
+interface ShareFileRequest {
+    emails: string[];
+}
+
+interface DashboardApiResponse {
+    total_files_shared: number;
+    used_storage: number;
+    allocated_storage?: number;
+    current_role: 'guest' | 'regular' | 'admin';
+    incomplete_mfa?: number;
+    encryption_health?: number;
+    failed_decryption_alerts?: number;
+    name: string;
+}
+
+// Transformation function
+const transformToDashboardData = (apiData: DashboardApiResponse): DashboardData => {
+    // Convert bytes to GB
+    const usedStorageGB = apiData.used_storage / (1024 * 1024 * 1024);
+
+    // Default values for guest
+    if (apiData.current_role === 'guest') {
+        return {
+            totalFiles: apiData.total_files_shared,
+            usedStorageGB,
+            activeLinks: 0,
+            userRole: 'Guest',
+            encryptionPercent: 100,
+            sharedLinks: {
+                total: 0,
+                viewOnly: 0,
+                downloadable: 0,
+            },
+            accessControl: {
+                pendingRequests: 0,
+                restrictedFilesPercent: 0,
+                adminOverrides: 0,
+            },
+            securityAlerts: {
+                failedDecryptAttempts: 0,
+                pendingMFASetups: 0,
+            },
+            userRoles: {
+                admins: 0,
+                regularUsers: 0,
+                guests: 0,
+            },
+            name: apiData.name
+        };
+    }
+
+    // For Regular and Admin users
+    return {
+        totalFiles: apiData.total_files_shared,
+        usedStorageGB,
+        activeLinks: 0, // Need to add this to your API
+        userRole: apiData.current_role === 'admin' ? 'Admin' : 'Regular',
+        encryptionPercent: apiData.encryption_health || 100,
+        sharedLinks: {
+            total: apiData.total_files_shared,
+            viewOnly: 0, // Need to add these to your API
+            downloadable: 0,
+        },
+        accessControl: {
+            pendingRequests: 0,
+            restrictedFilesPercent: 0,
+            adminOverrides: 0,
+        },
+        securityAlerts: {
+            failedDecryptAttempts: apiData.failed_decryption_alerts || 0,
+            pendingMFASetups: apiData.incomplete_mfa || 0,
+        },
+        userRoles: {
+            admins: 0,
+            regularUsers: 0,
+            guests: 0,
+        },
+        name: apiData.name
+    };
+};
+
+
+// Service
+export const fileService = {
+    // Get user dashboard data
+    getUserData: async (): Promise<UserData> => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/user-data/`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 401) {
+                throw new Error('Unauthorized access');
+            }
+            throw new Error('Failed to fetch user data');
+        }
+    },
+
+    // Get uploaded files
+    getUploadedFiles: async (): Promise<FileData[]> => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/uploaded-files/`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return response.data;
+        } catch (error: any) {
+            throw new Error('Failed to fetch uploaded files');
+        }
+    },
+
+    // Get shared files
+    getSharedFiles: async (): Promise<FileData[]> => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/shared-files/`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return response.data;
+        } catch (error: any) {
+            throw new Error('Failed to fetch shared files');
+        }
+    },
+
+    // Upload file
+    uploadFile: async (data: UploadFileRequest): Promise<FileData> => {
+        try {
+            const formData = new FormData();
+            formData.append('file', data.file);
+            formData.append('status', data.status);
+            if (data.expiry_days) {
+                formData.append('expiry_days', data.expiry_days.toString());
+            }
+
+            const response = await axios.post(`${API_BASE_URL}/upload/`, formData, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 413) {
+                throw new Error('File size exceeds limit');
+            }
+            if (error.response?.status === 403) {
+                throw new Error('Guest users cannot upload files');
+            }
+            throw new Error('Failed to upload file');
+        }
+    },
+
+    // Delete file
+    deleteFile: async (fileId: number): Promise<void> => {
+        try {
+            await axios.delete(`${API_BASE_URL}/delete/${fileId}/`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+        } catch (error: any) {
+            if (error.response?.status === 404) {
+                throw new Error('File not found');
+            }
+            throw new Error('Failed to delete file');
+        }
+    },
+
+    // Share file
+    shareFile: async (fileId: number, data: ShareFileRequest): Promise<FileData> => {
+        try {
+            const response = await axios.post(
+                `${API_BASE_URL}/share/${fileId}/`,
+                data,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                }
+            );
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 404) {
+                throw new Error('File not found');
+            }
+            throw new Error('Failed to share file');
+        }
+    },
+
+
+    getDashboardData: async (): Promise<DashboardData> => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/user-data/`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return transformToDashboardData(response.data);
+        } catch (error: any) {
+            throw new Error('Failed to fetch dashboard data');
+        }
+    },
+
+    downloadFile: async (downloadLink: string, downloadName: string): Promise<void> => {
+        try {
+            const response = await axios.get(
+                `${API_BASE_URL}/download/${downloadLink}/`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    },
+                    responseType: 'blob'
+                }
+            );
+
+            // Get content type from response headers
+            const contentType = response.headers['content-type'];
+
+            // Create blob with correct content type
+            const blob = new Blob([response.data], { type: contentType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            // Check for Content-Disposition header in both cases
+            const contentDisposition = response.headers['content-disposition'] || response.headers['Content-Disposition'];
+            let filename = downloadName;
+
+            if (contentDisposition) {
+                const matches = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (matches != null && matches[1]) {
+                    filename = matches[1].replace(/['"]/g, '');
+                }
+            }
+
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+
+            // Cleanup
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error: any) {
+            if (error.response?.status === 404) {
+                throw new Error('File not found');
+            }
+            if (error.response?.status === 410) {
+                throw new Error('File has expired');
+            }
+            throw new Error('Failed to download file');
+        }
+    },
+
+    // Get role upgrade requests
+    getRoleRequests: async (): Promise<any[]> => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/role-requests/`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return response.data;
+        } catch (error: any) {
+            throw new Error('Failed to fetch role requests');
+        }
+    },
+
+    // Request role upgrade
+    requestRoleUpgrade: async (): Promise<void> => {
+        try {
+            await axios.post(`${API_BASE_URL}/request-upgrade/`, null, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+        } catch (error: any) {
+            throw new Error('Failed to request role upgrade');
+        }
+    },
+
+    // Approve role upgrade
+    approveRoleUpgrade: async (userId: number, role: 'regular' | 'admin'): Promise<void> => {
+        try {
+            await axios.post(`${API_BASE_URL}/approve-upgrade/${userId}/`, { role }, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+        } catch (error: any) {
+            throw new Error('Failed to approve role upgrade');
+        }
+    },
+
+    // Downgrade user to guest
+    downgradeToGuest: async (userId: number): Promise<void> => {
+        try {
+            await axios.post(`${API_BASE_URL}/downgrade-to-guest/${userId}/`, null, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+        } catch (error: any) {
+            throw new Error('Failed to downgrade user');
+        }
+    }
+
+
+
+
+};
+
+
+==================================================
+
+//filepath: auth.ts
+//content:
+// src/services/auth.ts
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:8000/api/auth';
+
+interface LoginResponse {
+    token: string;
+    refresh_token: string;
+    isMFAenabled: boolean;
+}
+
+interface RegisterResponse {
+    message: string;
+    user_id: number;
+    token: string;
+    refresh_token: string;
+    isMFAenabled: boolean;
+}
+
+interface LogoutResponse {
+    message: string;
+    status: string;
+}
+
+interface MFASetupResponse {
+    qr_code: string;
+    secret: string;
+}
+
+interface MFAVerifyResponse {
+    message: string;
+    success: boolean;
+    token: string;
+    refresh_token: string;
+    isMFAenabled: boolean;
+}
+
+let tempTokenForMFA= ""
+export const authService = {
+    login: async (email: string, password: string): Promise<LoginResponse> => {
+        try {
+            const response = await axios.post(`${API_BASE_URL}/login/`, {
+                email,
+                password
+            });
+            tempTokenForMFA = response.data.token;
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 401) {
+                throw new Error('Invalid email or password');
+            }
+            throw new Error('An unexpected error occurred. Please try again later.');
+        }
+    },
+
+    register: async (name: string, email: string, password: string): Promise<RegisterResponse> => {
+        try {
+            const response = await axios.post(`${API_BASE_URL}/register/`, {
+                name,
+                email,
+                password
+            });
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 400) {
+                throw new Error('Registration failed. Please check your details.');
+            }
+            throw new Error('An unexpected error occurred. Please try again later.');
+        }
+    },
+
+    logout: async (): Promise<LogoutResponse> => {
+        try {
+            const token = localStorage.getItem('token');
+            const refreshToken = localStorage.getItem('refreshToken');
+
+            if (!token || !refreshToken) {
+                localStorage.clear();
+                throw new Error('No active session');
+            }
+
+            const response = await axios.post(
+                `${API_BASE_URL}/logout/`,
+                {refresh_token: refreshToken},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            localStorage.clear();
+            return response.data;
+        } catch (error: any) {
+            localStorage.clear();
+            if (error.response?.status === 401) {
+                throw new Error('Session expired');
+            }
+            throw error;
+        }
+    },
+
+    setupMFA: async (): Promise<MFASetupResponse> => {
+        try {
+            const response = await axios.post(
+                `${API_BASE_URL}/mfa/setup/`,
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                }
+            );
+            return response.data;
+        } catch (error: any) {
+            throw new Error('MFA setup failed');
+        }
+    },
+
+    verifyMFA: async (otp: string): Promise<MFAVerifyResponse> => {
+        try {
+            const token = localStorage.getItem('token') || tempTokenForMFA;
+            if (!token) {
+                throw new Error('No authentication token found');
+            }
+
+            const response = await axios.post(
+                `${API_BASE_URL}/mfa/verify/`,
+                {otp},
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                }
+            );
+            if (response.data.success) {
+                localStorage.setItem('isMFAenabled', 'true');
+                localStorage.setItem('token', response.data.token);
+                localStorage.setItem('refreshToken', response.data.refresh_token);
+                tempTokenForMFA = "";
+            }
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.data?.code === 'token_not_valid') {
+                localStorage.removeItem('token');
+                throw new Error('Session expired. Please login again.');
+            }
+            throw new Error('MFA verification failed');
+        }
+    }
+};
+
+
+==================================================
+
+
+
+==================================================
+
+//filepath: files.ts
+//content:
+import axios from 'axios';
+import {DashboardData} from "../components/abnormal/DashboardCards.tsx";
+
+const API_BASE_URL = 'http://localhost:8000/api/files';
+
+// Interfaces
+interface UserData {
+    total_files_shared: number;
+    used_storage: number;
+    allocated_storage?: number;
+    current_role: 'guest' | 'regular' | 'admin';
+    incomplete_mfa?: number;
+    encryption_health?: number;
+    failed_decryption_alerts?: number;
+}
+
+interface FileData {
+    id: number;
+    name: string;
+    size: number;
+    extension: string;
+    status: 'private' | 'public';
+    expiry_date: string;
+    uploaded_date: string;
+    download_link: string | null;
+}
+
+interface UploadFileRequest {
+    file: File;
+    status: 'private' | 'public';
+    expiry_days?: number;
+}
+
+interface ShareFileRequest {
+    emails: string[];
+}
+
+interface DashboardApiResponse {
+    total_files_shared: number;
+    used_storage: number;
+    allocated_storage?: number;
+    current_role: 'guest' | 'regular' | 'admin';
+    incomplete_mfa?: number;
+    encryption_health?: number;
+    failed_decryption_alerts?: number;
+    name: string;
+}
+
+// Transformation function
+const transformToDashboardData = (apiData: DashboardApiResponse): DashboardData => {
+    // Convert bytes to GB
+    const usedStorageGB = apiData.used_storage / (1024 * 1024 * 1024);
+
+    // Default values for guest
+    if (apiData.current_role === 'guest') {
+        return {
+            totalFiles: apiData.total_files_shared,
+            usedStorageGB,
+            activeLinks: 0,
+            userRole: 'Guest',
+            encryptionPercent: 100,
+            sharedLinks: {
+                total: 0,
+                viewOnly: 0,
+                downloadable: 0,
+            },
+            accessControl: {
+                pendingRequests: 0,
+                restrictedFilesPercent: 0,
+                adminOverrides: 0,
+            },
+            securityAlerts: {
+                failedDecryptAttempts: 0,
+                pendingMFASetups: 0,
+            },
+            userRoles: {
+                admins: 0,
+                regularUsers: 0,
+                guests: 0,
+            },
+            name: apiData.name
+        };
+    }
+
+    // For Regular and Admin users
+    return {
+        totalFiles: apiData.total_files_shared,
+        usedStorageGB,
+        activeLinks: 0, // Need to add this to your API
+        userRole: apiData.current_role === 'admin' ? 'Admin' : 'Regular',
+        encryptionPercent: apiData.encryption_health || 100,
+        sharedLinks: {
+            total: apiData.total_files_shared,
+            viewOnly: 0, // Need to add these to your API
+            downloadable: 0,
+        },
+        accessControl: {
+            pendingRequests: 0,
+            restrictedFilesPercent: 0,
+            adminOverrides: 0,
+        },
+        securityAlerts: {
+            failedDecryptAttempts: apiData.failed_decryption_alerts || 0,
+            pendingMFASetups: apiData.incomplete_mfa || 0,
+        },
+        userRoles: {
+            admins: 0,
+            regularUsers: 0,
+            guests: 0,
+        },
+        name: apiData.name
+    };
+};
+
+
+// Service
+export const fileService = {
+    // Get user dashboard data
+    getUserData: async (): Promise<UserData> => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/user-data/`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 401) {
+                throw new Error('Unauthorized access');
+            }
+            throw new Error('Failed to fetch user data');
+        }
+    },
+
+    // Get uploaded files
+    getUploadedFiles: async (): Promise<FileData[]> => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/uploaded-files/`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return response.data;
+        } catch (error: any) {
+            throw new Error('Failed to fetch uploaded files');
+        }
+    },
+
+    // Get shared files
+    getSharedFiles: async (): Promise<FileData[]> => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/shared-files/`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return response.data;
+        } catch (error: any) {
+            throw new Error('Failed to fetch shared files');
+        }
+    },
+
+    // Upload file
+    uploadFile: async (data: UploadFileRequest): Promise<FileData> => {
+        try {
+            const formData = new FormData();
+            formData.append('file', data.file);
+            formData.append('status', data.status);
+            if (data.expiry_days) {
+                formData.append('expiry_days', data.expiry_days.toString());
+            }
+
+            const response = await axios.post(`${API_BASE_URL}/upload/`, formData, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 413) {
+                throw new Error('File size exceeds limit');
+            }
+            if (error.response?.status === 403) {
+                throw new Error('Guest users cannot upload files');
+            }
+            throw new Error('Failed to upload file');
+        }
+    },
+
+    // Delete file
+    deleteFile: async (fileId: number): Promise<void> => {
+        try {
+            await axios.delete(`${API_BASE_URL}/delete/${fileId}/`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+        } catch (error: any) {
+            if (error.response?.status === 404) {
+                throw new Error('File not found');
+            }
+            throw new Error('Failed to delete file');
+        }
+    },
+
+    // Share file
+    shareFile: async (fileId: number, data: ShareFileRequest): Promise<FileData> => {
+        try {
+            const response = await axios.post(
+                `${API_BASE_URL}/share/${fileId}/`,
+                data,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                }
+            );
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 404) {
+                throw new Error('File not found');
+            }
+            throw new Error('Failed to share file');
+        }
+    },
+
+
+    getDashboardData: async (): Promise<DashboardData> => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/user-data/`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return transformToDashboardData(response.data);
+        } catch (error: any) {
+            throw new Error('Failed to fetch dashboard data');
+        }
+    },
+
+    downloadFile: async (downloadLink: string, downloadName: string): Promise<void> => {
+        try {
+            const response = await axios.get(
+                `${API_BASE_URL}/download/${downloadLink}/`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    },
+                    responseType: 'blob'
+                }
+            );
+
+            // Get content type from response headers
+            const contentType = response.headers['content-type'];
+
+            // Create blob with correct content type
+            const blob = new Blob([response.data], { type: contentType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            // Check for Content-Disposition header in both cases
+            const contentDisposition = response.headers['content-disposition'] || response.headers['Content-Disposition'];
+            let filename = downloadName;
+
+            if (contentDisposition) {
+                const matches = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (matches != null && matches[1]) {
+                    filename = matches[1].replace(/['"]/g, '');
+                }
+            }
+
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+
+            // Cleanup
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error: any) {
+            if (error.response?.status === 404) {
+                throw new Error('File not found');
+            }
+            if (error.response?.status === 410) {
+                throw new Error('File has expired');
+            }
+            throw new Error('Failed to download file');
+        }
+    },
+
+    // Get role upgrade requests
+    getRoleRequests: async (): Promise<any[]> => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/role-requests/`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            return response.data;
+        } catch (error: any) {
+            throw new Error('Failed to fetch role requests');
+        }
+    },
+
+    // Request role upgrade
+    requestRoleUpgrade: async (): Promise<void> => {
+        try {
+            await axios.post(`${API_BASE_URL}/request-upgrade/`, null, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+        } catch (error: any) {
+            throw new Error('Failed to request role upgrade');
+        }
+    },
+
+    // Approve role upgrade
+    approveRoleUpgrade: async (userId: number, role: 'regular' | 'admin'): Promise<void> => {
+        try {
+            await axios.post(`${API_BASE_URL}/approve-upgrade/${userId}/`, { role }, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+        } catch (error: any) {
+            throw new Error('Failed to approve role upgrade');
+        }
+    },
+
+    // Downgrade user to guest
+    downgradeToGuest: async (userId: number): Promise<void> => {
+        try {
+            await axios.post(`${API_BASE_URL}/downgrade-to-guest/${userId}/`, null, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+        } catch (error: any) {
+            throw new Error('Failed to downgrade user');
+        }
+    }
+
+
+
+
+};
+
+
+==================================================
+
+//filepath: auth.ts
+//content:
+// src/services/auth.ts
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:8000/api/auth';
+
+interface LoginResponse {
+    token: string;
+    refresh_token: string;
+    isMFAenabled: boolean;
+}
+
+interface RegisterResponse {
+    message: string;
+    user_id: number;
+    token: string;
+    refresh_token: string;
+    isMFAenabled: boolean;
+}
+
+interface LogoutResponse {
+    message: string;
+    status: string;
+}
+
+interface MFASetupResponse {
+    qr_code: string;
+    secret: string;
+}
+
+interface MFAVerifyResponse {
+    message: string;
+    success: boolean;
+    token: string;
+    refresh_token: string;
+    isMFAenabled: boolean;
+}
+
+let tempTokenForMFA= ""
+export const authService = {
+    login: async (email: string, password: string): Promise<LoginResponse> => {
+        try {
+            const response = await axios.post(`${API_BASE_URL}/login/`, {
+                email,
+                password
+            });
+            tempTokenForMFA = response.data.token;
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 401) {
+                throw new Error('Invalid email or password');
+            }
+            throw new Error('An unexpected error occurred. Please try again later.');
+        }
+    },
+
+    register: async (name: string, email: string, password: string): Promise<RegisterResponse> => {
+        try {
+            const response = await axios.post(`${API_BASE_URL}/register/`, {
+                name,
+                email,
+                password
+            });
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 400) {
+                throw new Error('Registration failed. Please check your details.');
+            }
+            throw new Error('An unexpected error occurred. Please try again later.');
+        }
+    },
+
+    logout: async (): Promise<LogoutResponse> => {
+        try {
+            const token = localStorage.getItem('token');
+            const refreshToken = localStorage.getItem('refreshToken');
+
+            if (!token || !refreshToken) {
+                localStorage.clear();
+                throw new Error('No active session');
+            }
+
+            const response = await axios.post(
+                `${API_BASE_URL}/logout/`,
+                {refresh_token: refreshToken},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            localStorage.clear();
+            return response.data;
+        } catch (error: any) {
+            localStorage.clear();
+            if (error.response?.status === 401) {
+                throw new Error('Session expired');
+            }
+            throw error;
+        }
+    },
+
+    setupMFA: async (): Promise<MFASetupResponse> => {
+        try {
+            const response = await axios.post(
+                `${API_BASE_URL}/mfa/setup/`,
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                }
+            );
+            return response.data;
+        } catch (error: any) {
+            throw new Error('MFA setup failed');
+        }
+    },
+
+    verifyMFA: async (otp: string): Promise<MFAVerifyResponse> => {
+        try {
+            const token = localStorage.getItem('token') || tempTokenForMFA;
+            if (!token) {
+                throw new Error('No authentication token found');
+            }
+
+            const response = await axios.post(
+                `${API_BASE_URL}/mfa/verify/`,
+                {otp},
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                }
+            );
+            if (response.data.success) {
+                localStorage.setItem('isMFAenabled', 'true');
+                localStorage.setItem('token', response.data.token);
+                localStorage.setItem('refreshToken', response.data.refresh_token);
+                tempTokenForMFA = "";
+            }
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.data?.code === 'token_not_valid') {
+                localStorage.removeItem('token');
+                throw new Error('Session expired. Please login again.');
+            }
+            throw new Error('MFA verification failed');
+        }
+    }
+};
+
+export const setupAxiosInterceptors = () => {
+    axios.interceptors.response.use(
+        (response) => response,
+        (error) => {
+            if (error.response?.status === 401) {
+                // Clear all auth data
+                localStorage.clear();
+                // Redirect to login
+                window.location.href = '/login';
+            }
+            return Promise.reject(error);
+        }
+    );
+};
+
+
+==================================================
+

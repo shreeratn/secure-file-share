@@ -17,6 +17,8 @@ class File(models.Model):
     download_link = models.CharField(max_length=255, null=True, blank=True)
     expiry_date = models.DateTimeField(null=True, blank=True)
     shared_with = models.ManyToManyField(User, related_name='shared_files', blank=True)
+    encryption_key = models.TextField(null=True, blank=True)
+    encryption_iv = models.BinaryField(null=True, blank=True)
 
 class UserStorage(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)

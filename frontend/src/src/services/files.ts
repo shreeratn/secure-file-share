@@ -112,6 +112,43 @@ const transformToDashboardData = (apiData: DashboardApiResponse): DashboardData 
     };
 };
 
+const encryptFile = async (file: File) => {
+    try {
+        // Generate a new AES-GCM key
+        const key = await crypto.subtle.generateKey(
+            { name: "AES-GCM", length: 256 },
+            true,
+            ["encrypt", "decrypt"]
+        );
+
+        // Generate random initialization vector
+        const iv = crypto.getRandomValues(new Uint8Array(16));
+
+        // Encrypt file contents
+        const encryptedData = await crypto.subtle.encrypt(
+            { name: "AES-GCM", iv },
+            key,
+            await file.arrayBuffer()
+        );
+
+
+        // Export key for storage
+        const exportedKey = await crypto.subtle.exportKey("raw", key);
+        const keyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedKey)));
+
+        return {
+            encryptedBlob: new Blob([encryptedData], { type: file.type }),
+            metadata: {
+                originalName: file.name,
+                iv: Array.from(iv),
+                key: keyBase64
+            }
+        };
+    } catch (error) {
+        throw new Error(`Encryption failed: ${error.message}`);
+    }
+};
+
 
 // Service
 export const fileService = {
@@ -163,13 +200,26 @@ export const fileService = {
     // Upload file
     uploadFile: async (data: UploadFileRequest): Promise<FileData> => {
         try {
+            // Encrypt the file before upload
+            const encryptionResult = await encryptFile(data.file);
+
+            console.log('encryptionResult', encryptionResult);
+
             const formData = new FormData();
-            formData.append('file', data.file);
+            formData.append('file', encryptionResult.encryptedBlob, data.file.name);
             formData.append('status', data.status);
+            formData.append('encryption_metadata', JSON.stringify({
+                iv: encryptionResult.metadata.iv,  // Already an array from encryptFile
+                key: encryptionResult.metadata.key // Already base64 encoded from encryptFile
+            }));
+
             if (data.expiry_days) {
                 formData.append('expiry_days', data.expiry_days.toString());
             }
 
+            for (const pair of formData.entries()) {
+                console.log(`${pair[0]}: ${pair[1]}`);
+            }
             const response = await axios.post(`${API_BASE_URL}/upload/`, formData, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -187,6 +237,7 @@ export const fileService = {
             throw new Error('Failed to upload file');
         }
     },
+
 
     // Delete file
     deleteFile: async (fileId: number): Promise<void> => {
@@ -239,7 +290,7 @@ export const fileService = {
         }
     },
 
-    downloadFile: async (downloadLink: string, downloadName: string): Promise<void> => {
+    downloadFile: async (downloadLink: string, downloadName: string, metadata: any): Promise<void> => {
         try {
             const response = await axios.get(
                 `${API_BASE_URL}/download/${downloadLink}/`,
@@ -251,43 +302,49 @@ export const fileService = {
                 }
             );
 
-            // Get content type from response headers
-            const contentType = response.headers['content-type'];
+            // Add debug logs
+            console.log('link:', downloadLink);
+            console.log('name', downloadName);
+            console.log('Download response size:', response.data.size);
+            console.log('Metadata received:', metadata);
 
-            // Create blob with correct content type
-            const blob = new Blob([response.data], { type: contentType });
+            // Convert base64 key back to ArrayBuffer
+            const keyBytes = Uint8Array.from(atob(metadata.key), c => c.charCodeAt(0));
+            console.log('Key bytes:', keyBytes);
+
+            const key = await crypto.subtle.importKey(
+                "raw",
+                keyBytes,
+                { name: "AES-GCM", length: 256 },
+                false,
+                ["decrypt"]
+            );
+
+            const iv = new Uint8Array(metadata.iv);
+            console.log('IV array:', iv);
+
+            const decryptedData = await crypto.subtle.decrypt(
+                { name: "AES-GCM", iv },
+                key,
+                await response.data.arrayBuffer()
+            );
+
+            const blob = new Blob([decryptedData], { type: response.headers['content-type'] });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-
-            // Check for Content-Disposition header in both cases
-            const contentDisposition = response.headers['content-disposition'] || response.headers['Content-Disposition'];
-            let filename = downloadName;
-
-            if (contentDisposition) {
-                const matches = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-                if (matches != null && matches[1]) {
-                    filename = matches[1].replace(/['"]/g, '');
-                }
-            }
-
-            a.download = filename;
+            a.download = downloadName;
             document.body.appendChild(a);
             a.click();
-
-            // Cleanup
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-        } catch (error: any) {
-            if (error.response?.status === 404) {
-                throw new Error('File not found');
-            }
-            if (error.response?.status === 410) {
-                throw new Error('File has expired');
-            }
-            throw new Error('Failed to download file');
+
+        } catch (error) {
+            console.error('Decryption error details:', error);
+            throw new Error('Decryption failed: Invalid key or corrupted data');
         }
     },
+
 
     // Get role upgrade requests
     getRoleRequests: async (): Promise<any[]> => {

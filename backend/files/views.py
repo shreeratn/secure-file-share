@@ -8,7 +8,8 @@ import uuid
 from authentication.models import User  # Add this import
 from .models import File, UserStorage, RoleUpgradeRequest
 from .serializers import FileSerializer, UserStorageSerializer, FileUploadSerializer, RoleUpgradeRequestSerializer
-
+import logging
+logger = logging.getLogger('files')
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -50,24 +51,32 @@ def get_shared_files(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def upload_file(request):
+    print("=== Upload File View Started ===")
+    logger.error("=== Upload File View Started ===")
+
     # Check if user is guest
     if request.user.user_type == User.UserType.GUEST:
         return Response({
             'error': 'Guests cannot upload files'
         }, status=status.HTTP_403_FORBIDDEN)
 
+    print(f"Request Data: {request.data}")
+    logger.error(f"Request Data: {request.data}")
+
     serializer = FileUploadSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
         file = request.FILES['file']
+        print(f"File name: {file.name}, Size: {file.size}")
+        logger.error(f"File name: {file.name}, Size: {file.size}")
 
-        # Set max file size based on user type (10MB for admin, 5MB for regular)
+        # Size checks...
         max_size = 10485760 if request.user.user_type == User.UserType.ADMIN else 5242880
         if file.size > max_size:
             return Response({
                 'error': f'File size exceeds limit. Maximum size allowed is {max_size/1048576}MB'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check user's storage limit
+        # Storage checks...
         storage = UserStorage.objects.get_or_create(user=request.user)[0]
         if storage.used_storage + file.size > storage.allocated_storage:
             return Response({
@@ -75,33 +84,30 @@ def upload_file(request):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-        # Create file record
-            new_file = File.objects.create(
-                name=file.name,
-                file=file,
-                extension=file.name.split('.')[-1],
-                size=file.size,
-                uploaded_by=request.user,
-                status=serializer.validated_data.get('status', 'private'),
-                expiry_date=datetime.now(timezone.utc) + timedelta(days=serializer.validated_data.get('expiry_days', 7)),
-                download_link=str(uuid.uuid4())  # Generate download link for all files
-            )
+            # Use serializer's create method instead of direct File.objects.create
+            new_file = serializer.save()
 
-            # Update user's storage usage
+            # Update storage
             storage.used_storage += file.size
             storage.save()
+
+            print("=== File Upload Successful ===")
+            logger.error("=== File Upload Successful ===")
 
             return Response(
                 FileSerializer(new_file).data,
                 status=status.HTTP_201_CREATED
             )
 
-
         except Exception as e:
+            print(f"Error uploading file: {str(e)}")
+            logger.error(f"Error uploading file: {str(e)}")
             return Response({
                 'error': f'Error uploading file: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    print(f"Serializer errors: {serializer.errors}")
+    logger.error(f"Serializer errors: {serializer.errors}")
     return Response(
         serializer.errors,
         status=status.HTTP_400_BAD_REQUEST
