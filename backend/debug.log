@@ -38,3 +38,31 @@ TypeError: File() got unexpected keyword arguments: 'expiry_days', 'encryption_m
 ### ERROR 2025-02-16 06:16:18,201 serializers 55 281472887878048 Full validated_data: {'file': <TemporaryUploadedFile: Screenshot 2024-11-06 at 6.43.00PM.png (image/png)>, 'status': 'private', 'expiry_days': 7, 'encryption_metadata': {'iv': [152, 72, 137, 48, 200, 101, 235, 163, 192, 250, 217, 159, 173, 21, 205, 123], 'key': 'u4QW60cyuPqLnVePTdBFyGCjGZI+pZleZtyY7SIWYNQ='}}
 ### ERROR 2025-02-16 06:16:18,201 serializers 55 281472887878048 Encryption metadata: {'iv': [152, 72, 137, 48, 200, 101, 235, 163, 192, 250, 217, 159, 173, 21, 205, 123], 'key': 'u4QW60cyuPqLnVePTdBFyGCjGZI+pZleZtyY7SIWYNQ='}
 ### ERROR 2025-02-16 06:16:18,232 views 55 281472887878048 === File Upload Successful ===
+### ERROR 2025-02-16 14:23:17,002 views 9 281473173680544 === Upload File View Started ===
+### ERROR 2025-02-16 14:23:17,006 views 9 281473173680544 Request Data: <QueryDict: {'status': ['private'], 'encryption_metadata': ['{"iv":[212,38,69,59,31,141,41,22,156,144,192,235,72,83,16,232],"key":"thqd/1xccdJDrLr+JFfopWRTyfVTECetkLWeGE3EsJY="}'], 'file': [<InMemoryUploadedFile: wallpaper.jpg (image/jpeg)>]}>
+### ERROR 2025-02-16 14:23:17,007 views 9 281473173680544 File name: wallpaper.jpg, Size: 1340060
+### ERROR 2025-02-16 14:23:17,009 serializers 9 281473173680544 === Starting file upload ===
+### ERROR 2025-02-16 14:23:17,010 serializers 9 281473173680544 Full validated_data: {'file': <InMemoryUploadedFile: wallpaper.jpg (image/jpeg)>, 'status': 'private', 'expiry_days': 7, 'encryption_metadata': {'iv': [212, 38, 69, 59, 31, 141, 41, 22, 156, 144, 192, 235, 72, 83, 16, 232], 'key': 'thqd/1xccdJDrLr+JFfopWRTyfVTECetkLWeGE3EsJY='}}
+### ERROR 2025-02-16 14:23:17,010 serializers 9 281473173680544 Encryption metadata: {'iv': [212, 38, 69, 59, 31, 141, 41, 22, 156, 144, 192, 235, 72, 83, 16, 232], 'key': 'thqd/1xccdJDrLr+JFfopWRTyfVTECetkLWeGE3EsJY='}
+### ERROR 2025-02-16 14:23:17,028 views 9 281473173680544 === File Upload Successful ===
+### ERROR 2025-02-16 14:45:51,360 views 9 281473518072224 === Upload File View Started ===
+### ERROR 2025-02-16 14:45:51,365 views 9 281473518072224 Request Data: <QueryDict: {'status': ['private'], 'encryption_metadata': ['{"iv":[111,52,109,175,120,202,121,223,146,41,79,23,42,99,116,179],"key":"Lt6IX09Wee8iOrE4QXdoyV3zYvVNgoKIvQB2swkaXPI="}'], 'file': [<InMemoryUploadedFile: wallpaper.jpg (image/jpeg)>]}>
+### ERROR 2025-02-16 14:45:51,366 views 9 281473518072224 File name: wallpaper.jpg, Size: 1340060
+### ERROR 2025-02-16 14:45:51,368 serializers 9 281473518072224 === Starting file upload ===
+### ERROR 2025-02-16 14:45:51,368 serializers 9 281473518072224 Full validated_data: {'file': <InMemoryUploadedFile: wallpaper.jpg (image/jpeg)>, 'status': 'private', 'expiry_days': 7, 'encryption_metadata': {'iv': [111, 52, 109, 175, 120, 202, 121, 223, 146, 41, 79, 23, 42, 99, 116, 179], 'key': 'Lt6IX09Wee8iOrE4QXdoyV3zYvVNgoKIvQB2swkaXPI='}}
+### ERROR 2025-02-16 14:45:51,369 serializers 9 281473518072224 Encryption metadata: {'iv': [111, 52, 109, 175, 120, 202, 121, 223, 146, 41, 79, 23, 42, 99, 116, 179], 'key': 'Lt6IX09Wee8iOrE4QXdoyV3zYvVNgoKIvQB2swkaXPI='}
+### ERROR 2025-02-16 14:45:51,393 views 9 281473518072224 === File Upload Successful ===
+### ERROR 2025-02-17 04:40:39,058 views 9 281473231876512 === Upload File View Started ===
+### ERROR 2025-02-17 04:40:39,062 views 9 281473231876512 Request Data: <QueryDict: {'status': ['private'], 'encryption_metadata': ['{"iv":[204,188,148,205,254,157,21,232,106,143,196,237,36,6,139,166],"key":"AHRDCCNazB8PsTqnIGFWP/iJPnlvtmoOndiiOUZXOXw="}'], 'file': [<InMemoryUploadedFile: wallpaper.jpg (image/jpeg)>]}>
+### ERROR 2025-02-17 04:40:39,062 views 9 281473231876512 File name: wallpaper.jpg, Size: 1340060
+### ERROR 2025-02-17 04:40:39,064 serializers 9 281473231876512 === Starting file upload ===
+### ERROR 2025-02-17 04:40:39,064 serializers 9 281473231876512 Full validated_data: {'file': <InMemoryUploadedFile: wallpaper.jpg (image/jpeg)>, 'status': 'private', 'expiry_days': 7, 'encryption_metadata': {'iv': [204, 188, 148, 205, 254, 157, 21, 232, 106, 143, 196, 237, 36, 6, 139, 166], 'key': 'AHRDCCNazB8PsTqnIGFWP/iJPnlvtmoOndiiOUZXOXw='}}
+### ERROR 2025-02-17 04:40:39,064 serializers 9 281473231876512 Encryption metadata: {'iv': [204, 188, 148, 205, 254, 157, 21, 232, 106, 143, 196, 237, 36, 6, 139, 166], 'key': 'AHRDCCNazB8PsTqnIGFWP/iJPnlvtmoOndiiOUZXOXw='}
+### ERROR 2025-02-17 04:40:39,098 views 9 281473231876512 === File Upload Successful ===
+### ERROR 2025-02-17 04:45:10,296 views 9 281473749938592 === Upload File View Started ===
+### ERROR 2025-02-17 04:45:10,299 views 9 281473749938592 Request Data: <QueryDict: {'status': ['private'], 'encryption_metadata': ['{"iv":[110,19,219,100,46,216,9,44,49,180,26,137,190,227,42,47],"key":"p7JHklE19Wgz+PU6QzzB1qxym8On16EZBniVZWFVVl8="}'], 'file': [<InMemoryUploadedFile: wallpaper.jpg (image/jpeg)>]}>
+### ERROR 2025-02-17 04:45:10,300 views 9 281473749938592 File name: wallpaper.jpg, Size: 1340060
+### ERROR 2025-02-17 04:45:10,302 serializers 9 281473749938592 === Starting file upload ===
+### ERROR 2025-02-17 04:45:10,302 serializers 9 281473749938592 Full validated_data: {'file': <InMemoryUploadedFile: wallpaper.jpg (image/jpeg)>, 'status': 'private', 'expiry_days': 7, 'encryption_metadata': {'iv': [110, 19, 219, 100, 46, 216, 9, 44, 49, 180, 26, 137, 190, 227, 42, 47], 'key': 'p7JHklE19Wgz+PU6QzzB1qxym8On16EZBniVZWFVVl8='}}
+### ERROR 2025-02-17 04:45:10,302 serializers 9 281473749938592 Encryption metadata: {'iv': [110, 19, 219, 100, 46, 216, 9, 44, 49, 180, 26, 137, 190, 227, 42, 47], 'key': 'p7JHklE19Wgz+PU6QzzB1qxym8On16EZBniVZWFVVl8='}
+### ERROR 2025-02-17 04:45:10,329 views 9 281473749938592 === File Upload Successful ===

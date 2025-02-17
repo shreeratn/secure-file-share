@@ -287,7 +287,7 @@ export function DashboardCards({data, onRefresh}: {
                     </CardContent>)
                 }
                 <CardFooter className="text-xs text-muted-foreground">
-                    AES-256 Active | Last Audit: 2h ago
+                    AES-GCM Active | Last Audit: 2h ago
                 </CardFooter>
             </Card>
 
