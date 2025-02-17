@@ -149,6 +149,17 @@ While many requirements have been met, there are some areas still pending that w
     - Future work: Write extensive unit and integration tests along with CI/CD pipeline integration.
 3. **Scheduled Cleanup Tasks:**
     - Automated deletion or archiving of files past their expiry date has not yet been implemented.
-    - Future work: Use Django’s background tasks (such as Celery or Django-Q) to routinely clean up expired files.
-
+    - Future work: Use Django to routinely clean up expired files.
+4. **Email Reminder for Pending MFA:**
+    - Users who have not completed MFA setup do not receive reminders.
+    - Future work: Implement periodic email reminders for users with pending MFA setup.
+5. **Link Visibility Metric Update Card:**
+    - There is no visibility metric update card for shared links.
+    - Future work: Update card on the dashboard that updates and displays metrics on link visibility.
+6. **Security Health Live Calculations:**
+    - Security health metrics are not calculated live.
+    - Future work: Implement live calculations and display of security health metrics on the dashboard.
+7. **Failed Decryption Attempts:**
+    - Failed decryption attempts are not tracked.
+    - Future work: Track and log failed decryption attempts for security monitoring.
 ---
