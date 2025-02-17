@@ -163,3 +163,5 @@ While many requirements have been met, there are some areas still pending that w
     - Failed decryption attempts are not tracked.
     - Future work: Track and log failed decryption attempts for security monitoring.
 ---
+
+For admin login, both the ID and password are the same: `adminx@example.com`
